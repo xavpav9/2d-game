@@ -1,11 +1,13 @@
-import socket, select
+import socket, select, json
+from game import Game
 
 ip = "0.0.0.0"
 port = 2000
 
 class Server:
-    def __init__(self, ip, port, headersize):
+    def __init__(self, ip, port, headersize, gameHandler):
         self.headersize = headersize
+        self.gameHandler = gameHandler
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind((ip, port))
@@ -13,7 +15,7 @@ class Server:
         self.sock.listen(5)
 
         self.conns = []
-        self.conn_names = [self.sock]
+        self.connNames = [self.sock]
 
     def sendData(self, conn, data):
         encodedData = data.encode(encoding="utf-8")
@@ -36,15 +38,18 @@ class Server:
         return data
     
     def distributeData(self, data, connsToAvoid=[]):
-        for otherConn in self.conn_names:
+        for otherConn in self.connNames:
             if otherConn not in connsToAvoid and otherConn != self.sock:
                 self.sendData(otherConn, data)
 
     def acceptConnection(self):
         conn, addr = self.sock.accept()
         conn.send(str(self.headersize).encode(encoding="utf-8"))
-        self.conns.append({"conn": conn, "addr": addr})
-        self.conn_names.append(conn)
+        username = self.recvData(conn)
+        self.sendData(conn, "s" + json.dumps(gameHandler.serverData))
+
+        self.conns.append({"conn": conn, "addr": addr, "username": username})
+        self.connNames.append(conn)
 
         print(f"New connection at {addr}")
         return conn
@@ -60,36 +65,42 @@ class Server:
                 print(f"Removed connection at {self.conns[i]['addr']}")
 
                 self.conns.pop(i)
-                self.conn_names.pop(i+1)
+                self.connNames.pop(i+1)
+                self.gameHandler.removePlayer(i)
                 break
+        self.distributeData("p" + json.dumps(gameHandler.playerData), [])
 
     def automaticLoop(self, running):
         while running[0]:
-            connsToRead, _, connsInError = select.select(self.conn_names, [], self.conn_names)
+            connsToRead, _, connsInError = select.select(self.connNames, [], self.connNames)
 
             for conn in connsInError:
                 self.removeConnection(conn)
 
             for conn in connsToRead:
                 if conn == self.sock:
-                    newConn = self.acceptConnection
+                    newConn = self.acceptConnection()
+                    gameHandler.addPlayer(self.conns[-1])
+                    self.distributeData("p" + json.dumps(gameHandler.playerData), [])
+
                 else:
                     data = self.recvData(conn)
-                    print(data)
+                    gameHandler.handleData(data, self.conns[self.connNames.index(conn) - 1])
+
                     if data == "": self.removeConnection(conn)
                     else:
-                        self.distributeData(data, [])
+                        self.distributeData("p" + json.dumps(gameHandler.playerData), [])
 
     def close(self):
         self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
 
+if __name__ == "__main__":
 
-server = Server(ip, port, 8)
+    gameHandler = Game([], {"map": [600, 800]})
+    server = Server(ip, port, 8, gameHandler)
 
-conn = server.acceptConnection()
+    running = [True]
+    server.automaticLoop(running)
 
-running = [True]
-server.automaticLoop(running)
-
-server.close()
+    server.close()
