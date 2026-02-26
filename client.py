@@ -1,7 +1,7 @@
 import socket
 
 ip = "127.0.0.1"
-port = 2001
+port = 2000
 
 class Client:
     def __init__(self, ip, port):
@@ -16,11 +16,12 @@ class Client:
         self.sock.send(formattedData)
 
     def recvData(self):
-        dataLength = int(self.sock.recv(self.headersize).decode(encoding="utf-8"))
+        try: dataLength = int(self.sock.recv(self.headersize).decode(encoding="utf-8"))
+        except: return ""
+
         data = ""
         for i in range(dataLength // 8):
             newData = self.sock.recv(8)
-            if newData == b"": return ""
             data += newData.decode(encoding="utf-8")
         if dataLength % 8 != 0:
             newData = self.sock.recv(dataLength % 8)
@@ -35,7 +36,7 @@ class Client:
 
 client = Client(ip, port)
 
-print(client.recvData())
 client.sendData("hello back")
+print(client.recvData())
 
 client.close()
