@@ -16,11 +16,9 @@ def handleServer(client, playerData, serverData):
             case "p":
                 playerData.clear()
                 playerData += information
-                print("updated player data")
             case "s":
                 for k in serverData.keys(): del serverData[k]
                 for k, v in information.items(): serverData[k] = v
-                print("updated server data")
         
 
 playerData = []

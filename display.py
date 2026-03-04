@@ -20,8 +20,10 @@ def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
             playerPositions.append([xPos, yPos, player["colour"]])
 
     if len(playerPositions) > 2:
-        playerPositions = playerPositions[0] + sorted(playerPositions[1:], key=lambda a,b: b[1] - a[1])
-        usernamePositions = usernamePositions[0] + sorted(usernamePositions[1:], key=lambda a,b: b[1] - a[1])
+        # sorting based off of the y value.
+        tempPlayerPositions, tempUsernamePositions = [list(positions) for positions in zip(*sorted(zip(playerPositions[1:], usernamePositions[1:]), key=lambda data: -data[0][1]))]
+        playerPositions = [playerPositions[0]] + tempPlayerPositions
+        usernamePositions = [usernamePositions[0]] + tempUsernamePositions
 
     return playerPositions[::-1], usernamePositions[::-1]
 
@@ -40,6 +42,7 @@ def render(client, playerData, serverData):
 
     clock = pygame.time.Clock()
     bigFont = pygame.font.SysFont(typeface, 40, True, True)
+    font = pygame.font.SysFont(typeface, 20, True, True)
     screen = pygame.display.set_mode((W, H))
     pygame.display.set_caption("Game")
 
@@ -89,7 +92,6 @@ def render(client, playerData, serverData):
         screen.fill(WHITE)
         
         width = height = serverData["player"]["size"]
-        font = pygame.font.SysFont(typeface, int(width * 1.5), True, True)
 
         playerPositions, usernamePositions = getPlayerDisplayInfo(client.username, font, playerData, serverData)
         offset = playerPositions[-1]

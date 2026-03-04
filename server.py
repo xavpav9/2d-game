@@ -94,7 +94,7 @@ class Server:
 
 if __name__ == "__main__":
 
-    gameHandler = Game([], {"map": [600, 800], "player": {"size": 10}})
+    gameHandler = Game([], {"map": [600, 800], "player": {"size": 30}})
     server = Server(ip, port, 8, gameHandler)
 
 
