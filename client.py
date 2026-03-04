@@ -2,6 +2,10 @@ import socket
 
 class Client:
     def __init__(self, ip, port, username):
+        self.username = username
+        self.ip = ip
+        self.port = port
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((ip, port))
         self.headersize = int(self.sock.recv(8).decode(encoding="utf-8"))

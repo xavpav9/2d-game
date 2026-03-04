@@ -1,11 +1,11 @@
+import json, display, random
 from client import Client
-import json
 from threading import Thread
 
 ip = "127.0.0.1"
 port = 2000
 
-def handleServer(client, player_data, server_data):
+def handleServer(client, playerData, serverData):
     while True:
         data = client.recvData()
         if data == "": return
@@ -14,21 +14,25 @@ def handleServer(client, player_data, server_data):
 
         match data[0]:
             case "p":
-                player_data.clear()
-                player_data += information
+                playerData.clear()
+                playerData += information
                 print("updated player data")
             case "s":
-                server_data.clear()
-                server_data += information
+                for k in serverData.keys(): del serverData[k]
+                for k, v in information.items(): serverData[k] = v
                 print("updated server data")
         
 
-player_data = []
-server_data = []
-client = Client(ip, port, "Player_1")
+playerData = []
+serverData = {}
+client = Client(ip, port, f"Player_{random.randint(0, 1000)}")
 
-tHandleServer = Thread(target=handleServer, args=[client, player_data, server_data])
+tHandleServer = Thread(target=handleServer, args=[client, playerData, serverData])
+tDisplay = Thread(target=display.render, args=[client, playerData, serverData])
 
 tHandleServer.start()
+tDisplay.start()
+
 tHandleServer.join()
+tDisplay.join()
 
