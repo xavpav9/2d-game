@@ -1,14 +1,5 @@
 import pygame, json
 
-"""
-TODO:
-    - Make username display
-    - Remove black rectangle at top left of screen
-    - Make the getPlayerDisplayInfo actually find the correct current player
-    - add to server a colour randomiser for each player
-
-"""
-
 def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
     width = height = serverData["player"]["size"]
     usernamePositions = []
@@ -43,7 +34,12 @@ def render(client, playerData, serverData):
 
     pygame.init()
 
+    typeface = "freemono"
+    availableFonts = pygame.font.get_fonts()
+    if typeface not in availableFonts: typeface = availableFonts[0]
+
     clock = pygame.time.Clock()
+    bigFont = pygame.font.SysFont(typeface, 40, True, True)
     screen = pygame.display.set_mode((W, H))
     pygame.display.set_caption("Game")
 
@@ -93,11 +89,17 @@ def render(client, playerData, serverData):
         screen.fill(WHITE)
         
         width = height = serverData["player"]["size"]
-        font = pygame.font.SysFont("freemono", int(width * 1.5), True, True)
+        font = pygame.font.SysFont(typeface, int(width * 1.5), True, True)
 
         playerPositions, usernamePositions = getPlayerDisplayInfo(client.username, font, playerData, serverData)
         offset = playerPositions[-1]
 
+        # Draw Map
+        mapSize = serverData["map"]
+        borderWidth = 2
+        pygame.draw.rect(screen, BLACK, (screen.get_size()[0] / 2 - offset[0] - borderWidth, screen.get_size()[1] / 2 - offset[1] - borderWidth, mapSize[0] + borderWidth * 2, mapSize[1] + borderWidth * 2), borderWidth)
+
+        # Draw Players
         for i in range(len(playerPositions)):
             playerInfo = playerPositions[i]
             usernameInfo = usernamePositions[i]
@@ -108,6 +110,11 @@ def render(client, playerData, serverData):
 
             screen.blit(usernameInfo[2], (usernameX, usernameY))
             pygame.draw.rect(screen, playerInfo[2], (playerX, playerY, width, height))
+
+
+        #Display Player Coordinates
+        coordinates = bigFont.render(f"{int(offset[0])}, {int(offset[1])}", True, BLACK)
+        screen.blit(coordinates, (0, 0))
 
         pygame.display.flip()
         clock.tick(FPS)

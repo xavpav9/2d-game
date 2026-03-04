@@ -36,22 +36,32 @@ class Game:
     def tick(self, server, running):
         tickRate = 30
         frameTime = 1000 / tickRate
-        speed = 3
+        speed = 8
 
         while running[0]:
             startTime = time.time()
+            mapSize = self.serverData["map"]
+            playerSize = self.serverData["player"]["size"]
             
             for player in self.playerData:
                 velocity = player["velocity"]
                 if velocity[0] == velocity[1] == 0:
                     continue
                 elif velocity[0] != 0 and velocity[1] != 0:
-                    player["position"][0] += ((abs(velocity[0]) * speed) ** (1/2)) * velocity[0]
-                    player["position"][1] += ((abs(velocity[1]) * speed) ** (1/2)) * velocity[1]
+                    hypoteneuse = (velocity[0] ** 2 + velocity[1] ** 2) ** (1/2)
+                    ratio = speed / hypoteneuse
+                    player["position"][0] += velocity[0] * ratio
+                    player["position"][1] += velocity[1] * ratio
                 elif velocity[0] != 0:
                     player["position"][0] += velocity[0] * speed
                 else:
                     player["position"][1] += velocity[1] * speed
+
+                if player["position"][0] < 0: player["position"][0] = 0
+                elif player["position"][0] > mapSize[0] - playerSize: player["position"][0] = mapSize[0] - playerSize
+
+                if player["position"][1] < 0: player["position"][1] = 0
+                elif player["position"][1] > mapSize[1] - playerSize: player["position"][1] = mapSize[1] - playerSize
 
             server.distributeData("p" + json.dumps(self.playerData), [])
 
