@@ -1,4 +1,4 @@
-import pygame
+import pygame, json
 
 """
 TODO:
@@ -39,6 +39,7 @@ def render(client, playerData, serverData):
     W, H = 800, 600
     WHITE, BLACK = (255,255,255), (0,0,0)
     FPS = 30
+    velocity = [0, 0]
 
     pygame.init()
 
@@ -52,6 +53,42 @@ def render(client, playerData, serverData):
         for evt in pygame.event.get():
             if evt.type == pygame.QUIT:
                 running = False
+            elif evt.type == pygame.KEYDOWN:
+                newData = False
+                if evt.key == pygame.K_a:
+                    newData = True
+                    velocity[0] = -1
+                elif evt.key == pygame.K_d:
+                    newData = True
+                    velocity[0] = 1
+                elif evt.key == pygame.K_w:
+                    newData = True
+                    velocity[1] = -1
+                elif evt.key == pygame.K_s:
+                    newData = True
+                    velocity[1] = 1
+
+                if newData:
+                    client.sendData("v" + json.dumps(velocity))
+            elif evt.type == pygame.KEYUP:
+                newData = False
+                if evt.key == pygame.K_a and velocity[0] != 1:
+                    newData = True
+                    velocity[0] = 0
+                elif evt.key == pygame.K_d and velocity[0] != -1:
+                    newData = True
+                    velocity[0] = 0
+                elif evt.key == pygame.K_w and velocity[1] != 1:
+                    newData = True
+                    velocity[1] = 0
+                elif evt.key == pygame.K_s and velocity[1] != -1:
+                    newData = True
+                    velocity[1] = 0
+
+                if newData:
+                    client.sendData("v" + json.dumps(velocity))
+
+
 
         screen.fill(WHITE)
         

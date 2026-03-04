@@ -1,5 +1,6 @@
 import socket, select, json
 from game import Game
+from threading import Thread
 
 ip = "0.0.0.0"
 port = 2000
@@ -68,7 +69,6 @@ class Server:
                 self.connNames.pop(i+1)
                 self.gameHandler.removePlayer(i)
                 break
-        self.distributeData("p" + json.dumps(gameHandler.playerData), [])
 
     def automaticLoop(self, running):
         while running[0]:
@@ -81,15 +81,12 @@ class Server:
                 if conn == self.sock:
                     newConn = self.acceptConnection()
                     gameHandler.addPlayer(self.conns[-1])
-                    self.distributeData("p" + json.dumps(gameHandler.playerData), [])
 
                 else:
                     data = self.recvData(conn)
                     gameHandler.handleData(data, self.conns[self.connNames.index(conn) - 1])
 
                     if data == "": self.removeConnection(conn)
-                    else:
-                        self.distributeData("p" + json.dumps(gameHandler.playerData), [])
 
     def close(self):
         self.sock.shutdown(socket.SHUT_RDWR)
@@ -100,7 +97,12 @@ if __name__ == "__main__":
     gameHandler = Game([], {"map": [600, 800], "player": {"size": 10}})
     server = Server(ip, port, 8, gameHandler)
 
+
     running = [True]
+    tGameLoop = Thread(target=gameHandler.tick, args=[server, running, ])
+    tGameLoop.start()
     server.automaticLoop(running)
 
+    running[0] = False
     server.close()
+    tGameLoop.join()
