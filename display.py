@@ -12,12 +12,14 @@ def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
         xUsername = xPos + (width / 2) - (renderedUsername.get_size()[0] / 2)
         yUsername = yPos - 10 - renderedUsername.get_size()[1]
 
+        usernameInfo = [xUsername, yUsername, renderedUsername]
+        playerInfo = [xPos, yPos, player["colour"], width, player["hidden"]]
         if username == currentUsername:
-            usernamePositions.insert(0, [xUsername, yUsername, renderedUsername])
-            playerPositions.insert(0, [xPos, yPos, player["colour"], width])
+            usernamePositions.insert(0, usernameInfo)
+            playerPositions.insert(0, playerInfo)
         else:
-            usernamePositions.append([xUsername, yUsername, renderedUsername])
-            playerPositions.append([xPos, yPos, player["colour"], width])
+            usernamePositions.append(usernameInfo)
+            playerPositions.append(playerInfo)
 
     if len(playerPositions) > 2:
         # sorting based off of the y value.
@@ -39,14 +41,15 @@ def getFeaturesDisplayInfo(featuresData):
 
 
 def displayPlayer(screen, playerInfo, usernameInfo, offset):
-    # playerInfo = [x, y, colour, size]
+    # playerInfo = [x, y, colour, size, hiddenUsername]
     width = height = playerInfo[3]
     playerX = playerInfo[0] - offset[0] + screen.get_size()[0] / 2
     playerY = playerInfo[1] - offset[1] + screen.get_size()[1] / 2
-    usernameX = usernameInfo[0] - offset[0] + screen.get_size()[0] / 2
-    usernameY = usernameInfo[1] - offset[1] + screen.get_size()[1] / 2
+    if not playerInfo[4]:
+        usernameX = usernameInfo[0] - offset[0] + screen.get_size()[0] / 2
+        usernameY = usernameInfo[1] - offset[1] + screen.get_size()[1] / 2
+        screen.blit(usernameInfo[2], (usernameX, usernameY))
 
-    screen.blit(usernameInfo[2], (usernameX, usernameY))
     pygame.draw.rect(screen, playerInfo[2], (playerX, playerY, width, height))
 
 def displayFeature(screen, featureInfo, featureIcons, offset):

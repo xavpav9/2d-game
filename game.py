@@ -2,14 +2,12 @@ import random, json, time
 
 """
 TODO
-    - Sometimes when using colliding, it launches you to the end of the block.
     - Add more different object features (i.e a bush).
-    - Make some objects have no hitbox (i.e. a bus) by adding a flag to players and features called "collide".
     - Allow player to pick their colour.
     - Add menu screen.
-    - I think that I will make this a tag sort of game.
+    - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar.
     - Add player icons perhaps, instead of solid colours.
-    - Add arrow key support.
+    - Add arrow key and controller support.
     - Allow different sized hitboxes by changing the "size" variable in the players/features to hold a width and height instead.
 """
 
@@ -38,7 +36,7 @@ class Game:
 
         username = player["username"]
         colour = (random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
-        self.playerData.append({"username": username, "position": position, "colour": colour, "velocity": [0, 0], "size": 30})
+        self.playerData.append({"username": username, "position": position, "colour": colour, "velocity": [0, 0], "size": 30, "collides": True, "hidden": False})
 
     def removePlayer(self, index):
         self.playerData.pop(index)
@@ -62,8 +60,9 @@ class Game:
             print(e)
             print(f"Invalid data \"{data}\" sent by {player['username']}")
 
-    def fixCollisions(self, player, otherPlayers, dx, dy):
+    def fixCollisions(self, player, otherPlayers, dx, dy, collides=True):
         playerSize = player["size"]
+        hidden = False
         for otherPlayer in otherPlayers:
             if otherPlayer != player:
                 otherPlayerSize = otherPlayer["size"]
@@ -74,13 +73,19 @@ class Game:
                 otherPlayerY = otherPlayer["position"][1] + otherPlayerSize / 2
 
                 if abs(playerX - otherPlayerX) < minimumGap and abs(playerY - otherPlayerY) < minimumGap:
-                    if dx != 0 and not(abs(playerX - dx - otherPlayerX) + 1 < minimumGap):
-                        player["position"][0] += (minimumGap - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
-                    elif dy != 0 and not(abs(playerY - dy - otherPlayerY) + 1 < minimumGap):
-                        player["position"][1] += (minimumGap - abs(playerY - otherPlayerY)) * (-dy / abs(dy))
+                    if otherPlayer["collides"]:
+                        if dx != 0 and not(abs(playerX - dx - otherPlayerX) + 1 < minimumGap):
+                            player["position"][0] += (minimumGap - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
+                        elif dy != 0 and not(abs(playerY - dy - otherPlayerY) + 1 < minimumGap):
+                            player["position"][1] += (minimumGap - abs(playerY - otherPlayerY)) * (-dy / abs(dy))
+                        else:
+                            if dx != 0: player["position"][0] += (minimumGap - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
+                            if dy != 0: player["position"][1] += (minimumGap - abs(playerY - otherPlayerY)) * (-dy / abs(dy))
                     else:
-                        if dx != 0: player["position"][0] += (minimumGap - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
-                        if dy != 0: player["position"][1] += (minimumGap - abs(playerY - otherPlayerY)) * (-dy / abs(dy))
+                        hidden = True
+                        if not collides: return True
+
+        return hidden
 
 
     def tick(self, server, running):
@@ -118,11 +123,17 @@ class Game:
                 if player["position"][1] < 0: player["position"][1] = 0
                 elif player["position"][1] > mapSize[1] - playerSize: player["position"][1] = mapSize[1] - playerSize
 
-                # Handle other player collisions.
-                self.fixCollisions(player, self.playerData, dx, dy)
+                if player["collides"]:
+                    # Handle other player collisions.
+                    hidden = self.fixCollisions(player, self.playerData, dx, dy)
 
-                # Handle feature collisions.
-                self.fixCollisions(player, self.serverData["features"], dx, dy)
+                    # Handle feature collisions.
+                    hidden = self.fixCollisions(player, self.serverData["features"], dx, dy) or hidden
+                else:
+                    hidden = self.fixCollisions(player, self.serverData["features"], dx, dy)
+
+                player["hidden"] = hidden
+
 
             server.distributeData("p" + json.dumps(self.playerData), [])
 
