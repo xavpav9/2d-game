@@ -1,4 +1,4 @@
-import socket, select, json
+import socket, select, json, random
 from game import Game
 from threading import Thread
 
@@ -110,7 +110,14 @@ class Server:
 
 if __name__ == "__main__":
 
-    gameHandler = Game([], {"map": [600, 800], "player": {"size": 30}})
+
+    features = []
+    mapSize = [600, 800]
+    rockSize = 30
+    for i in range((mapSize[1] - rockSize) // 100 + 1):
+        features.append({"name": "rock", "position": [random.randint(0, mapSize[0] - rockSize), i * 100], "size": random.randint(20, 40)})
+
+    gameHandler = Game([], {"map": mapSize, "player": {"defaultSize": 30}, "features": features})
     server = Server(ip, port, 8, gameHandler)
 
 

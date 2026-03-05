@@ -1,5 +1,18 @@
 import random, json, time
 
+"""
+TODO
+    - Sometimes when using colliding, it launches you to the end of the block.
+    - Add more different object features (i.e a bush).
+    - Make some objects have no hitbox (i.e. a bus) by adding a flag to players and features called "collide".
+    - Allow player to pick their colour.
+    - Add menu screen.
+    - I think that I will make this a tag sort of game.
+    - Add player icons perhaps, instead of solid colours.
+    - Add arrow key support.
+    - Allow different sized hitboxes by changing the "size" variable in the players/features to hold a width and height instead.
+"""
+
 class Game:
     def __init__(self, playerData, serverData):
         self.playerData = playerData
@@ -7,24 +20,25 @@ class Game:
 
     def addPlayer(self, player):
         valid = False
-        playerSize = self.serverData["player"]["size"]
+        playerSize = self.serverData["player"]["defaultSize"]
         while not valid:
             valid = True
-            position = [random.randint(0, self.serverData["map"][0] - self.serverData["player"]["size"]), random.randint(0, self.serverData["map"][1] - self.serverData["player"]["size"])]
-            for otherPlayer in self.playerData:
-                if otherPlayer != player:
-                    playerX = position[0] + playerSize / 2
-                    playerY = position[1] + playerSize / 2
-                    otherPlayerX = otherPlayer["position"][0] + playerSize / 2
-                    otherPlayerY = otherPlayer["position"][1] + playerSize / 2
+            position = [random.randint(0, self.serverData["map"][0] - playerSize), random.randint(0, self.serverData["map"][1] - playerSize)]
+            for otherPlayer in self.playerData + self.serverData["features"]:
+                otherPlayerSize = otherPlayer["size"]
+                minimumGap = (playerSize + otherPlayerSize) / 2
+                playerX = position[0] + playerSize / 2
+                playerY = position[1] + playerSize / 2
+                otherPlayerX = otherPlayer["position"][0] + otherPlayerSize / 2
+                otherPlayerY = otherPlayer["position"][1] + otherPlayerSize / 2
 
-                    if abs(playerX - otherPlayerX) < playerSize and abs(playerY - otherPlayerY) < playerSize:
-                        valid = False
-                        break
+                if abs(playerX - otherPlayerX) < minimumGap and abs(playerY - otherPlayerY) < minimumGap:
+                    valid = False
+                    break
 
         username = player["username"]
         colour = (random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
-        self.playerData.append({"username": username, "position": position, "colour": colour, "velocity": [0, 0]})
+        self.playerData.append({"username": username, "position": position, "colour": colour, "velocity": [0, 0], "size": 30})
 
     def removePlayer(self, index):
         self.playerData.pop(index)
@@ -48,6 +62,27 @@ class Game:
             print(e)
             print(f"Invalid data \"{data}\" sent by {player['username']}")
 
+    def fixCollisions(self, player, otherPlayers, dx, dy):
+        playerSize = player["size"]
+        for otherPlayer in otherPlayers:
+            if otherPlayer != player:
+                otherPlayerSize = otherPlayer["size"]
+                minimumGap = (playerSize + otherPlayerSize) / 2
+                playerX = player["position"][0] + playerSize / 2
+                playerY = player["position"][1] + playerSize / 2
+                otherPlayerX = otherPlayer["position"][0] + otherPlayerSize / 2
+                otherPlayerY = otherPlayer["position"][1] + otherPlayerSize / 2
+
+                if abs(playerX - otherPlayerX) < minimumGap and abs(playerY - otherPlayerY) < minimumGap:
+                    if dx != 0 and not(int(abs(playerX - dx - otherPlayerX)) < minimumGap):
+                        player["position"][0] += (minimumGap - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
+                    elif dy != 0 and not(int(abs(playerY - dy - otherPlayerY)) < minimumGap):
+                        player["position"][1] += (minimumGap - abs(playerY - otherPlayerY)) * (-dy / abs(dy))
+                    else:
+                        if dx != 0: player["position"][0] += (minimumGap - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
+                        if dy != 0: player["position"][1] += (minimumGap - abs(playerY - otherPlayerY)) * (-dy / abs(dy))
+
+
     def tick(self, server, running):
         tickRate = 30
         frameTime = 1000 / tickRate
@@ -56,10 +91,10 @@ class Game:
         while running[0]:
             startTime = time.time()
             mapSize = self.serverData["map"]
-            playerSize = self.serverData["player"]["size"]
             
             for player in self.playerData:
                 # Move player based on their velocity.
+                playerSize = player["size"]
                 velocity = player["velocity"]
                 dx = dy = 0
                 if velocity[0] == velocity[1] == 0:
@@ -83,22 +118,11 @@ class Game:
                 if player["position"][1] < 0: player["position"][1] = 0
                 elif player["position"][1] > mapSize[1] - playerSize: player["position"][1] = mapSize[1] - playerSize
 
-                # Other player collisions.
-                for otherPlayer in self.playerData:
-                    if otherPlayer != player:
-                        playerX = player["position"][0] + playerSize / 2
-                        playerY = player["position"][1] + playerSize / 2
-                        otherPlayerX = otherPlayer["position"][0] + playerSize / 2
-                        otherPlayerY = otherPlayer["position"][1] + playerSize / 2
+                # Handle other player collisions.
+                self.fixCollisions(player, self.playerData, dx, dy)
 
-                        if abs(playerX - otherPlayerX) < playerSize and abs(playerY - otherPlayerY) < playerSize:
-                            if dx != 0 and not(int(abs(playerX - dx - otherPlayerX)) < playerSize):
-                                player["position"][0] += (playerSize - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
-                            elif dy != 0 and not(int(abs(playerY - dy - otherPlayerY)) < playerSize):
-                                player["position"][1] += (playerSize - abs(playerY - otherPlayerY)) * (-dy / abs(dy))
-                            else:
-                                if dx != 0: player["position"][0] += (playerSize - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
-                                if dy != 0: player["position"][1] += (playerSize - abs(playerY - otherPlayerY)) * (-dy / abs(dy))
+                # Handle feature collisions.
+                self.fixCollisions(player, self.serverData["features"], dx, dy)
 
             server.distributeData("p" + json.dumps(self.playerData), [])
 
@@ -106,6 +130,3 @@ class Game:
             totalTime = (endTime-startTime)
             if totalTime < frameTime:
                 time.sleep((frameTime - totalTime) / 1000)
-
-
-
