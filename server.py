@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
 
     features = []
-    mapSize = [600, 800]
+    mapSize = [1000, 1200]
     rockSize = 30
     for i in range((mapSize[1] - rockSize) // 100 + 1):
         features.append({"name": "rock", "position": [random.randint(0, mapSize[0] - rockSize), i * 100], "size": random.randint(20, 40), "collides": True})

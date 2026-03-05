@@ -4,11 +4,10 @@ import random, json, time
 TODO
     - Add more different object features (i.e a bush).
     - Allow player to pick their colour.
-    - Add menu screen.
-    - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar.
+    - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Will have to preconfigure.
     - Add player icons perhaps, instead of solid colours.
     - Add arrow key and controller support.
-    - Allow different sized hitboxes by changing the "size" variable in the players/features to hold a width and height instead.
+    - Allow different rectangular sized hitboxes by changing the "size" variable in the players/features to hold a width and height instead.
 """
 
 class Game:

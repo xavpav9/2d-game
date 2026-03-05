@@ -64,11 +64,15 @@ def displayFeature(screen, featureInfo, featureIcons, offset):
     scaledIcon = pygame.transform.scale(icon, (width, height))
     screen.blit(scaledIcon, (featureX, featureY))
 
-def render(client, playerData, serverData, inMenu):
+def render(client, playerData, serverData, clientData):
     W, H = 800, 600
-    WHITE, BLACK = (255,255,255), (0,0,0)
+    WHITE, BLACK, RED, GREEN, BLUE = (255,255,255), (0,0,0), (255,0,0), (0,255,0), (0,0,255)
     FPS = 30
     velocity = [0, 0]
+    clickPos = [0, 0]
+    btnPadding = [20, 10]
+    ctrl = False
+    validUsernameCharacters = "abcdefghijklmnopqrstuvwxyz1234567890_- "
     featureIcons = {"noTexture": pygame.image.load("res/noTexture.png"), "rock": pygame.image.load("res/rock.png")}
 
     pygame.init()
@@ -83,66 +87,120 @@ def render(client, playerData, serverData, inMenu):
     screen = pygame.display.set_mode((W, H))
     pygame.display.set_caption("Game")
 
+    title = bigFont.render("Tag", True, BLACK)
+    playBtn = font.render("Play", True, BLACK)
+    quitBtn = font.render("Quit", True, RED)
 
-    running = True
-    while running:
+
+    while clientData["running"]:
         for evt in pygame.event.get():
             if evt.type == pygame.QUIT:
-                running = False
+                clientData["running"] = False
             elif evt.type == pygame.KEYDOWN:
-                newData = False
-                if evt.key == pygame.K_a:
-                    newData = True
-                    velocity[0] = -1
-                elif evt.key == pygame.K_d:
-                    newData = True
-                    velocity[0] = 1
-                elif evt.key == pygame.K_w:
-                    newData = True
-                    velocity[1] = -1
-                elif evt.key == pygame.K_s:
-                    newData = True
-                    velocity[1] = 1
+                if evt.key == pygame.K_LCTRL:
+                    ctrl = True
+                elif clientData["inMenu"]:
+                    if evt.unicode.lower() in validUsernameCharacters:
+                        if len(client.username) < 15: client.username += evt.unicode
+                    elif evt.key == pygame.K_BACKSPACE:
+                        if ctrl: client.username = ""
+                        elif len(client.username) > 0: client.username = client.username[:-1]
+                    elif evt.key == pygame.K_RETURN:
+                        clientData["inMenu"] = False
+                        sleep(0.8)
+                else:
+                    newData = False
+                    if evt.key == pygame.K_a:
+                        newData = True
+                        velocity[0] = -1
+                    elif evt.key == pygame.K_d:
+                        newData = True
+                        velocity[0] = 1
+                    elif evt.key == pygame.K_w:
+                        newData = True
+                        velocity[1] = -1
+                    elif evt.key == pygame.K_s:
+                        newData = True
+                        velocity[1] = 1
 
-                if newData and not inMenu[0]:
-                    client.sendData("v" + json.dumps(velocity))
+                    if newData:
+                        client.sendData("v" + json.dumps(velocity))
 
             elif evt.type == pygame.KEYUP:
-                newData = False
-                if evt.key == pygame.K_a and velocity[0] != 1:
-                    newData = True
-                    velocity[0] = 0
-                elif evt.key == pygame.K_d and velocity[0] != -1:
-                    newData = True
-                    velocity[0] = 0
-                elif evt.key == pygame.K_w and velocity[1] != 1:
-                    newData = True
-                    velocity[1] = 0
-                elif evt.key == pygame.K_s and velocity[1] != -1:
-                    newData = True
-                    velocity[1] = 0
+                if evt.key == pygame.K_LCTRL:
+                    ctrl = False
+                elif clientData["inMenu"]:
+                    pass
+                else:
+                    newData = False
+                    if evt.key == pygame.K_a and velocity[0] != 1:
+                        newData = True
+                        velocity[0] = 0
+                    elif evt.key == pygame.K_d and velocity[0] != -1:
+                        newData = True
+                        velocity[0] = 0
+                    elif evt.key == pygame.K_w and velocity[1] != 1:
+                        newData = True
+                        velocity[1] = 0
+                    elif evt.key == pygame.K_s and velocity[1] != -1:
+                        newData = True
+                        velocity[1] = 0
 
-                if newData and not inMenu[0]:
-                    client.sendData("v" + json.dumps(velocity))
+                    if newData:
+                        client.sendData("v" + json.dumps(velocity))
 
             elif evt.type == pygame.MOUSEBUTTONDOWN:
-                inMenu[0] = False
-                sleep(1)
+                clickPos = pygame.mouse.get_pos()
+
+            elif evt.type == pygame.MOUSEBUTTONUP:
+                if clientData["inMenu"]:
+                    playBtnX, playBtnY = (width/2 - playBtn.get_size()[0]/2, height/2)
+                    titleBtnX, titleBtnY = (width/2 - title.get_size()[0]/2, height/6)
+                    quitBtnX, quitBtnY = (width/2 - quitBtn.get_size()[0]/2, 3*height/5)
+
+                    if clickPos[0] - (playBtnX - btnPadding[0]) < (playBtn.get_size()[0] + btnPadding[0] * 2) and clickPos[1] - (playBtnY - btnPadding[1]) < (playBtn.get_size()[1] + btnPadding[1] * 2):
+                        if len(client.username) >= 2:
+                            clientData["inMenu"] = False
+                            sleep(0.8)
+                        else:
+                            print("username too short")
+                    elif clickPos[0] - (quitBtnX - btnPadding[0]) < (quitBtn.get_size()[0] + btnPadding[0] * 2) and clickPos[1] - (quitBtnY - btnPadding[1]) < (quitBtn.get_size()[1] + btnPadding[1] * 2):
+                        print("quiting")
+                        clientData["running"] = False
                 
 
 
 
         screen.fill(WHITE)
 
-        if inMenu[0]:
-            pass
-            # -- Display Menu --
+        if not clientData["running"]: break
+
+        if clientData["inMenu"]:
+            # -- Display Menu -- #
+
+            width, height = screen.get_size()
+            usernameDisplay = font.render(client.username, True, BLUE)
+
+            titleBtnX, titleBtnY = (width/2 - title.get_size()[0]/2, height/6)
+            screen.blit(title, (titleBtnX, titleBtnY))
+            pygame.draw.line(screen, BLACK, (titleBtnX, titleBtnY+title.get_size()[1]), (titleBtnX+title.get_size()[0], titleBtnY+title.get_size()[1]), 4)
+
+            screen.blit(usernameDisplay, (width/2 - usernameDisplay.get_size()[0]/2, height/3))
+
+            playBtnX, playBtnY = (width/2 - playBtn.get_size()[0]/2, height/2)
+            screen.blit(playBtn, (playBtnX, playBtnY))
+            pygame.draw.rect(screen, BLACK, (playBtnX - btnPadding[0], playBtnY - btnPadding[1], playBtn.get_size()[0] + btnPadding[0] * 2, playBtn.get_size()[1] + btnPadding[1] * 2), 4, 5)
+
+            quitBtnX, quitBtnY = (width/2 - quitBtn.get_size()[0]/2, 3*height/5)
+            screen.blit(quitBtn, (quitBtnX, quitBtnY))
+            pygame.draw.rect(screen, BLACK, (quitBtnX - btnPadding[0], quitBtnY - btnPadding[1], quitBtn.get_size()[0] + btnPadding[0] * 2, quitBtn.get_size()[1] + btnPadding[1] * 2), 4, 5)
+
         else:
-            # -- Display Current Game --
+            # -- Display Current Game -- #
 
             playerPositions, usernamePositions = getPlayerDisplayInfo(client.username, font, playerData, serverData)
             featurePositions = getFeaturesDisplayInfo(serverData["features"])
-            offset = playerPositions[-1]
+            offset = [playerPositions[-1][i] + playerPositions[-1][3] / 2 for i in range(2)]
 
             # Draw Map
             mapSize = serverData["map"]
@@ -167,9 +225,9 @@ def render(client, playerData, serverData, inMenu):
                     playerIncrementer += 1
 
 
-            #Display Player Coordinates
-            coordinates = bigFont.render(f"{int(offset[0])}, {int(offset[1])}", True, BLACK)
-            screen.blit(coordinates, (0, 0))
+            # Display Player Coordinates
+            coordinates = bigFont.render(f"{int(playerPositions[-1][0])}, {int(playerPositions[-1][1])}", True, BLACK)
+            screen.blit(coordinates, (2, 2))
 
         pygame.display.flip()
         clock.tick(FPS)
