@@ -6,7 +6,22 @@ class Game:
         self.serverData = serverData
 
     def addPlayer(self, player):
-        position = [random.randint(0, self.serverData["map"][0] - self.serverData["player"]["size"]), random.randint(0, self.serverData["map"][1] - self.serverData["player"]["size"])]
+        valid = False
+        playerSize = self.serverData["player"]["size"]
+        while not valid:
+            valid = True
+            position = [random.randint(0, self.serverData["map"][0] - self.serverData["player"]["size"]), random.randint(0, self.serverData["map"][1] - self.serverData["player"]["size"])]
+            for otherPlayer in self.playerData:
+                if otherPlayer != player:
+                    playerX = position[0] + playerSize / 2
+                    playerY = position[1] + playerSize / 2
+                    otherPlayerX = otherPlayer["position"][0] + playerSize / 2
+                    otherPlayerY = otherPlayer["position"][1] + playerSize / 2
+
+                    if abs(playerX - otherPlayerX) < playerSize and abs(playerY - otherPlayerY) < playerSize:
+                        valid = False
+                        break
+
         username = player["username"]
         colour = (random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
         self.playerData.append({"username": username, "position": position, "colour": colour, "velocity": [0, 0]})

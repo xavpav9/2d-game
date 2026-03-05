@@ -46,14 +46,31 @@ class Server:
     def acceptConnection(self):
         conn, addr = self.sock.accept()
         conn.send(str(self.headersize).encode(encoding="utf-8"))
-        username = self.recvData(conn)
+        username = self.recvData(conn).strip()
         self.sendData(conn, "s" + json.dumps(gameHandler.serverData))
 
-        self.conns.append({"conn": conn, "addr": addr, "username": username})
-        self.connNames.append(conn)
+        valid = True
+        problems = []
+        for otherConn in self.conns:
+            if otherConn["username"] == username:
+                problems.append("username in use")
+                valid = False
+                break
 
-        print(f"New connection at {addr}")
-        return conn
+        if len(username) < 2 or len(username) > 15:
+            valid = False
+            problems.append("username must be between 2 and 15 characters long")
+
+        if valid:
+            self.conns.append({"conn": conn, "addr": addr, "username": username})
+            self.connNames.append(conn)
+
+            print(f"New connection at {addr}")
+            return conn
+        else:
+            self.sendData(conn, "d" + json.dumps(problems))
+            self.removeConnection(conn)
+            return False
 
     def removeConnection(self, conn):
         for i in range(len(self.conns)):
@@ -80,8 +97,7 @@ class Server:
             for conn in connsToRead:
                 if conn == self.sock:
                     newConn = self.acceptConnection()
-                    gameHandler.addPlayer(self.conns[-1])
-
+                    if newConn != False: gameHandler.addPlayer(self.conns[-1])
                 else:
                     data = self.recvData(conn)
                     gameHandler.handleData(data, self.conns[self.connNames.index(conn) - 1])

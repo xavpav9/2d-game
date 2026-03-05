@@ -19,11 +19,18 @@ def handleServer(client, playerData, serverData):
             case "s":
                 for k in serverData.keys(): del serverData[k]
                 for k, v in information.items(): serverData[k] = v
-        
+            case "d":
+                print("The server has terminated your connection.")
+                print("Reasons: ")
+                for reason in information: print(f"- {reason}")
+                return
+            case _:
+                print(f"unknown request \"{data[0]}\" from server")
 
 playerData = []
 serverData = {}
-client = Client(ip, port, f"Player_{random.randint(0, 1000)}")
+# client = Client(ip, port, f"Player_{random.randint(0, 1000)}")
+client = Client(ip, port, input("username: "))
 
 tHandleServer = Thread(target=handleServer, args=[client, playerData, serverData])
 tDisplay = Thread(target=display.render, args=[client, playerData, serverData])
