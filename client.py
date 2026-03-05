@@ -6,10 +6,11 @@ class Client:
         self.ip = ip
         self.port = port
 
+    def initialiseSock(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((ip, port))
+        self.sock.connect((self.ip, self.port))
         self.headersize = int(self.sock.recv(8).decode(encoding="utf-8"))
-        self.sendData(username)
+        self.sendData(self.username)
 
     def sendData(self, data):
         encodedData = data.encode(encoding="utf-8")

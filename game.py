@@ -37,7 +37,7 @@ class Game:
         username = player["username"]
         colour = (random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
         self.playerData.append({"username": username, "position": position, "colour": colour, "velocity": [0, 0], "size": 30, "collides": True, "hidden": False})
-
+    
     def removePlayer(self, index):
         self.playerData.pop(index)
 

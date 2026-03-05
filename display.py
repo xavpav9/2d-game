@@ -1,4 +1,5 @@
 import pygame, json
+from time import sleep
 
 def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
     usernamePositions = []
@@ -63,7 +64,7 @@ def displayFeature(screen, featureInfo, featureIcons, offset):
     scaledIcon = pygame.transform.scale(icon, (width, height))
     screen.blit(scaledIcon, (featureX, featureY))
 
-def render(client, playerData, serverData):
+def render(client, playerData, serverData, inMenu):
     W, H = 800, 600
     WHITE, BLACK = (255,255,255), (0,0,0)
     FPS = 30
@@ -103,8 +104,9 @@ def render(client, playerData, serverData):
                     newData = True
                     velocity[1] = 1
 
-                if newData:
+                if newData and not inMenu[0]:
                     client.sendData("v" + json.dumps(velocity))
+
             elif evt.type == pygame.KEYUP:
                 newData = False
                 if evt.key == pygame.K_a and velocity[0] != 1:
@@ -120,43 +122,54 @@ def render(client, playerData, serverData):
                     newData = True
                     velocity[1] = 0
 
-                if newData:
+                if newData and not inMenu[0]:
                     client.sendData("v" + json.dumps(velocity))
+
+            elif evt.type == pygame.MOUSEBUTTONDOWN:
+                inMenu[0] = False
+                sleep(1)
+                
 
 
 
         screen.fill(WHITE)
 
-        playerPositions, usernamePositions = getPlayerDisplayInfo(client.username, font, playerData, serverData)
-        featurePositions = getFeaturesDisplayInfo(serverData["features"])
-        offset = playerPositions[-1]
+        if inMenu[0]:
+            pass
+            # -- Display Menu --
+        else:
+            # -- Display Current Game --
 
-        # Draw Map
-        mapSize = serverData["map"]
-        borderWidth = 2
-        pygame.draw.rect(screen, BLACK, (screen.get_size()[0] / 2 - offset[0] - borderWidth, screen.get_size()[1] / 2 - offset[1] - borderWidth, mapSize[0] + borderWidth * 2, mapSize[1] + borderWidth * 2), borderWidth)
+            playerPositions, usernamePositions = getPlayerDisplayInfo(client.username, font, playerData, serverData)
+            featurePositions = getFeaturesDisplayInfo(serverData["features"])
+            offset = playerPositions[-1]
 
-        # Draw Players and Features
-        playerIncrementer = 0
-        featuresIncrementer = 0
-        for i in range(len(playerPositions) + len(featurePositions)):
-            if featuresIncrementer == len(featurePositions):
-                displayPlayer(screen, playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
-                playerIncrementer += 1
-            elif playerIncrementer == len(playerPositions):
-                displayFeature(screen, featurePositions[featuresIncrementer], featureIcons, offset)
-                featuresIncrementer += 1
-            elif featurePositions[featuresIncrementer][1] > playerPositions[playerIncrementer][1]:
-                displayFeature(screen, featurePositions[featuresIncrementer], featureIcons, offset)
-                featuresIncrementer += 1
-            else:
-                displayPlayer(screen, playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
-                playerIncrementer += 1
+            # Draw Map
+            mapSize = serverData["map"]
+            borderWidth = 2
+            pygame.draw.rect(screen, BLACK, (screen.get_size()[0] / 2 - offset[0] - borderWidth, screen.get_size()[1] / 2 - offset[1] - borderWidth, mapSize[0] + borderWidth * 2, mapSize[1] + borderWidth * 2), borderWidth)
+
+            # Draw Players and Features
+            playerIncrementer = 0
+            featuresIncrementer = 0
+            for i in range(len(playerPositions) + len(featurePositions)):
+                if featuresIncrementer == len(featurePositions):
+                    displayPlayer(screen, playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
+                    playerIncrementer += 1
+                elif playerIncrementer == len(playerPositions):
+                    displayFeature(screen, featurePositions[featuresIncrementer], featureIcons, offset)
+                    featuresIncrementer += 1
+                elif featurePositions[featuresIncrementer][1] > playerPositions[playerIncrementer][1]:
+                    displayFeature(screen, featurePositions[featuresIncrementer], featureIcons, offset)
+                    featuresIncrementer += 1
+                else:
+                    displayPlayer(screen, playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
+                    playerIncrementer += 1
 
 
-        #Display Player Coordinates
-        coordinates = bigFont.render(f"{int(offset[0])}, {int(offset[1])}", True, BLACK)
-        screen.blit(coordinates, (0, 0))
+            #Display Player Coordinates
+            coordinates = bigFont.render(f"{int(offset[0])}, {int(offset[1])}", True, BLACK)
+            screen.blit(coordinates, (0, 0))
 
         pygame.display.flip()
         clock.tick(FPS)

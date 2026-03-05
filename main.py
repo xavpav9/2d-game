@@ -1,6 +1,7 @@
 import json, display, random
 from client import Client
 from threading import Thread
+from time import sleep
 
 ip = "127.0.0.1"
 port = 2000
@@ -29,15 +30,23 @@ def handleServer(client, playerData, serverData):
 
 playerData = []
 serverData = {}
+inMenu = [True]
 # client = Client(ip, port, f"Player_{random.randint(0, 1000)}")
-client = Client(ip, port, input("username: "))
+username = input("username: ")
+client = Client(ip, port, username)
 
+tDisplay = Thread(target=display.render, args=[client, playerData, serverData, inMenu])
 tHandleServer = Thread(target=handleServer, args=[client, playerData, serverData])
-tDisplay = Thread(target=display.render, args=[client, playerData, serverData])
 
-tHandleServer.start()
 tDisplay.start()
 
-tHandleServer.join()
-tDisplay.join()
+while True:
+    if not inMenu[0]:
+        client.initialiseSock()
+        tHandleServer.start()
+        break
+    else:
+        sleep(0.5)
 
+tDisplay.join()
+tHandleServer.join()
