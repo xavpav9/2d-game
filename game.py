@@ -74,9 +74,9 @@ class Game:
                 otherPlayerY = otherPlayer["position"][1] + otherPlayerSize / 2
 
                 if abs(playerX - otherPlayerX) < minimumGap and abs(playerY - otherPlayerY) < minimumGap:
-                    if dx != 0 and not(int(abs(playerX - dx - otherPlayerX)) < minimumGap):
+                    if dx != 0 and not(abs(playerX - dx - otherPlayerX) + 1 < minimumGap):
                         player["position"][0] += (minimumGap - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
-                    elif dy != 0 and not(int(abs(playerY - dy - otherPlayerY)) < minimumGap):
+                    elif dy != 0 and not(abs(playerY - dy - otherPlayerY) + 1 < minimumGap):
                         player["position"][1] += (minimumGap - abs(playerY - otherPlayerY)) * (-dy / abs(dy))
                     else:
                         if dx != 0: player["position"][0] += (minimumGap - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
