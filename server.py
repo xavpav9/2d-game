@@ -113,11 +113,18 @@ if __name__ == "__main__":
 
     features = []
     mapSize = [1000, 1200]
-    rockSize = 30
-    for i in range((mapSize[1] - rockSize) // 100 + 1):
-        features.append({"name": "rock", "position": [random.randint(0, mapSize[0] - rockSize), i * 100], "size": random.randint(20, 40), "collides": True})
+    maxFeatureHeight = 200
+    for i in range(2, (mapSize[1] - maxFeatureHeight) // 100 + 1):
+        rockWidth = random.randint(20, 40)
+        rockHeight = rockWidth + random.randint(-2, 2)
+        bushWidth = random.randint(80, 160)
+        bushHeight = bushWidth // 2 + random.randint(-2, 2)
 
-    gameHandler = Game([], {"map": mapSize, "player": {"defaultSize": 30}, "features": features})
+        features.append({"name": "rock", "position": [random.randint(0, mapSize[0] - rockWidth), i * 100 + random.randint(-80, 80)], "size": [rockWidth, rockHeight], "collides": True})
+        features.append({"name": "bush", "position": [random.randint(0, mapSize[0] - bushWidth), i * 100 + random.randint(-80, 80)], "size": [bushWidth, bushHeight], "collides": False})
+
+
+    gameHandler = Game([], {"map": mapSize, "player": {"defaultSize": [30, 30]}, "features": features})
     server = Server(ip, port, 8, gameHandler)
 
 

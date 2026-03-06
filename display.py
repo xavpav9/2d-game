@@ -2,11 +2,12 @@ import pygame, json
 from time import sleep
 
 def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
+    # playerInfo = [x, y, colour, size, hiddenUsername] size=width,height
     usernamePositions = []
     playerPositions = []
 
     for player in playerData:
-        width = height = player["size"]
+        width, height = player["size"]
         xPos, yPos = player["position"]
         username = player["username"]
         renderedUsername = font.render(username, True, (0,0,0))
@@ -14,7 +15,7 @@ def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
         yUsername = yPos - 10 - renderedUsername.get_size()[1]
 
         usernameInfo = [xUsername, yUsername, renderedUsername]
-        playerInfo = [xPos, yPos, player["colour"], width, player["hidden"]]
+        playerInfo = [xPos, yPos, player["colour"], (width, height), player["hidden"]]
         if username == currentUsername:
             usernamePositions.insert(0, usernameInfo)
             playerPositions.insert(0, playerInfo)
@@ -23,27 +24,29 @@ def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
             playerPositions.append(playerInfo)
 
     if len(playerPositions) > 2:
-        # sorting based off of the y value.
-        tempPlayerPositions, tempUsernamePositions = [list(positions) for positions in zip(*sorted(zip(playerPositions[1:], usernamePositions[1:]), key=lambda data: -(data[0][1] + data[0][3])))]
+        # sorting based off of the y value + playerSize.
+        tempPlayerPositions, tempUsernamePositions = [list(positions) for positions in zip(*sorted(zip(playerPositions[1:], usernamePositions[1:]), key=lambda data: data[0][1] + data[0][3], reverse=True))]
         playerPositions = [playerPositions[0]] + tempPlayerPositions
         usernamePositions = [usernamePositions[0]] + tempUsernamePositions
 
     return playerPositions[::-1], usernamePositions[::-1]
 
 def getFeaturesDisplayInfo(featuresData):
+    # featureInfo = [x, y, size, name] size=width,height
     featurePositions = []
     for feature in featuresData:
         xPos, yPos = feature["position"]
-        size = feature["size"]
+        width, height = feature["size"]
         name = feature["name"]
-        featurePositions.append([xPos, yPos, size, name])
+        featurePositions.append([xPos, yPos, (width, height), name])
 
-    return sorted(featurePositions, key=lambda data: data[1] + data[2])
+    # sorting based off of the y value + playerSize.
+    return sorted(featurePositions, key=lambda data: data[1] + data[2][1])
 
 
 def displayPlayer(screen, playerInfo, usernameInfo, offset):
-    # playerInfo = [x, y, colour, size, hiddenUsername]
-    width = height = playerInfo[3]
+    # playerInfo = [x, y, colour, size, hiddenUsername] size=width,height
+    width, height = playerInfo[3]
     playerX = playerInfo[0] - offset[0] + screen.get_size()[0] / 2
     playerY = playerInfo[1] - offset[1] + screen.get_size()[1] / 2
     if not playerInfo[4]:
@@ -54,8 +57,8 @@ def displayPlayer(screen, playerInfo, usernameInfo, offset):
     pygame.draw.rect(screen, playerInfo[2], (playerX, playerY, width, height))
 
 def displayFeature(screen, featureInfo, featureIcons, offset):
-    # featureInfo = [x, y, size, name]
-    width = height = featureInfo[2]
+    # featureInfo = [x, y, size, name] size=width,height
+    width, height = featureInfo[2]
     featureX = featureInfo[0] - offset[0] + screen.get_size()[0] / 2
     featureY = featureInfo[1] - offset[1] + screen.get_size()[1] / 2
 
@@ -75,7 +78,7 @@ def render(client, playerData, serverData, clientData):
     menuWait = [-1, False] # index 0: current frame since started, index 2: whether the client is trying to connect to the server or not
     ctrl = False # whether ctrl is being held
     validUsernameCharacters = "abcdefghijklmnopqrstuvwxyz1234567890_- "
-    featureIcons = {"noTexture": pygame.image.load("res/noTexture.png"), "rock": pygame.image.load("res/rock.png")}
+    featureIcons = {"noTexture": pygame.image.load("res/noTexture.png"), "rock": pygame.image.load("res/rock.png"), "bush": pygame.image.load("res/bush.png")}
     leaveBtn = pygame.transform.scale(pygame.image.load("res/leave.svg"), (30, 40))
 
     pygame.init()
@@ -242,7 +245,7 @@ def render(client, playerData, serverData, clientData):
 
             playerPositions, usernamePositions = getPlayerDisplayInfo(client.username, font, playerData, serverData)
             featurePositions = getFeaturesDisplayInfo(serverData["features"])
-            offset = [playerPositions[-1][i] + playerPositions[-1][3] / 2 for i in range(2)]
+            offset = [playerPositions[-1][i] + playerPositions[-1][3][i] / 2 for i in range(2)]
 
             # Draw Map
             mapSize = serverData["map"]
@@ -259,12 +262,12 @@ def render(client, playerData, serverData, clientData):
                 elif playerIncrementer == len(playerPositions):
                     displayFeature(screen, featurePositions[featuresIncrementer], featureIcons, offset)
                     featuresIncrementer += 1
-                elif featurePositions[featuresIncrementer][1] > playerPositions[playerIncrementer][1]:
-                    displayFeature(screen, featurePositions[featuresIncrementer], featureIcons, offset)
-                    featuresIncrementer += 1
-                else:
+                elif featurePositions[featuresIncrementer][1] + featurePositions[featuresIncrementer][2][1] > playerPositions[playerIncrementer][1] + playerPositions[playerIncrementer][3][1]: # if the y + height is higher, then display it later.
                     displayPlayer(screen, playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
                     playerIncrementer += 1
+                else:
+                    displayFeature(screen, featurePositions[featuresIncrementer], featureIcons, offset)
+                    featuresIncrementer += 1
 
 
             # Display Player Coordinates
