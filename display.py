@@ -71,10 +71,12 @@ def render(client, playerData, serverData, clientData):
     velocity = [0, 0] # x and y velocities
     clickPos = [0, 0] # position of click so that it is known when user releases mouse click
     btnPadding = [20, 10] # x and y padding of buttons on menu screen
+    uiPadding = [10, 10] # x and y padding for ui on game screen
     menuWait = [-1, False] # index 0: current frame since started, index 2: whether the client is trying to connect to the server or not
     ctrl = False # whether ctrl is being held
     validUsernameCharacters = "abcdefghijklmnopqrstuvwxyz1234567890_- "
     featureIcons = {"noTexture": pygame.image.load("res/noTexture.png"), "rock": pygame.image.load("res/rock.png")}
+    leaveBtn = pygame.transform.scale(pygame.image.load("res/leave.svg"), (30, 40))
 
     pygame.init()
 
@@ -116,6 +118,9 @@ def render(client, playerData, serverData, clientData):
                             bottomText = font.render("Username too short", True, RED)
                             menuWait = [0, False]
 
+                    elif evt.key == pygame.K_ESCAPE: # Quit game when Esc is pressed in menu
+                        clientData["running"] = False
+
                 elif menuWait[0] == -1:
                     newData = False
                     if evt.key == pygame.K_a:
@@ -130,9 +135,11 @@ def render(client, playerData, serverData, clientData):
                     elif evt.key == pygame.K_s:
                         newData = True
                         velocity[1] = 1
-                    elif evt.key == pygame.K_ESCAPE:
+                    elif evt.key == pygame.K_ESCAPE: # Return to menu when Esc is pressed in game
                         client.close()
                         clientData["inMenu"] = True
+                        bottomText = font.render("Disconnected from server.", True, RED)
+                        menuWait = [0, False]
 
                     if newData:
                         client.sendData("v" + json.dumps(velocity))
@@ -166,6 +173,7 @@ def render(client, playerData, serverData, clientData):
             elif evt.type == pygame.MOUSEBUTTONUP:
                 if clientData["inMenu"]:
                     width, height = screen.get_size()
+                    # This refers to the x and y of the top left of the text for each one.
                     playBtnX, playBtnY = (width/2 - playBtn.get_size()[0]/2, height/2)
                     titleBtnX, titleBtnY = (width/2 - title.get_size()[0]/2, height/6)
                     quitBtnX, quitBtnY = (width/2 - quitBtn.get_size()[0]/2, 3*height/5)
@@ -180,10 +188,16 @@ def render(client, playerData, serverData, clientData):
                             menuWait = [0, False]
 
                     elif clickPos[0] - (quitBtnX - btnPadding[0]) < (quitBtn.get_size()[0] + btnPadding[0] * 2) and clickPos[1] - (quitBtnY - btnPadding[1]) < (quitBtn.get_size()[1] + btnPadding[1] * 2):
-                        print("quiting")
                         clientData["running"] = False
-                
 
+                else:
+                    leaveBtnX, leaveBtnY = (screen.get_size()[0] - leaveBtn.get_size()[0] - uiPadding[0], uiPadding[1])
+
+                    if clickPos[0] - leaveBtnX < leaveBtn.get_size()[0] and clickPos[1] - leaveBtnY < leaveBtn.get_size()[1]:
+                        client.close()
+                        clientData["inMenu"] = True
+                        bottomText = font.render("Disconnected from server.", True, RED)
+                        menuWait = [0, False]
 
 
         screen.fill(WHITE)
@@ -255,7 +269,12 @@ def render(client, playerData, serverData, clientData):
 
             # Display Player Coordinates
             coordinates = bigFont.render(f"{int(playerPositions[-1][0])}, {int(playerPositions[-1][1])}", True, BLACK)
-            screen.blit(coordinates, (2, 2))
+            screen.blit(coordinates, uiPadding)
+
+            # Render leave button
+            leaveBtnX, leaveBtnY = (screen.get_size()[0] - leaveBtn.get_size()[0] - uiPadding[0], uiPadding[1])
+            screen.blit(leaveBtn, (leaveBtnX, leaveBtnY))
+
 
         pygame.display.flip()
         clock.tick(FPS)
