@@ -6,10 +6,12 @@ from time import sleep
 ip = "127.0.0.1"
 port = 2000
 
-def handleServer(client, playerData, serverData):
+def handleServer(client, playerData, serverData, clientData):
     while True:
         data = client.recvData()
-        if data == "": return
+        if data == "":
+            clientData["problem"] = "Disconnected from server."
+            return
 
         information = json.loads(data[1:])
 
@@ -18,42 +20,49 @@ def handleServer(client, playerData, serverData):
                 playerData.clear()
                 playerData += information
             case "s":
-                for k in serverData.keys(): del serverData[k]
+                serverData.clear()
                 for k, v in information.items(): serverData[k] = v
             case "d":
                 print("The server has terminated your connection.")
                 print("Reasons: ")
                 for reason in information: print(f"- {reason}")
-                clientData["running"] = False
-                return
+                clientData["problem"] = " ".join(information)
+                return 
             case _:
                 print(f"unknown request \"{data[0]}\" from server")
 
 playerData = []
 serverData = {}
-clientData = {"inMenu": True, "running": True}
+clientData = {"inMenu": True, "running": True, "problem": ""}
 client = Client(ip, port, f"Player_{str(random.randint(0, 999)).zfill(3)}")
 
 tDisplay = Thread(target=display.render, args=[client, playerData, serverData, clientData])
-tHandleServer = Thread(target=handleServer, args=[client, playerData, serverData])
-
 tDisplay.start()
 
 while True:
-    if not clientData["running"]:
-        break
-    elif not clientData["inMenu"]:
-        success = client.initialiseSock()
-        if success == True:
-            tHandleServer.start()
+    tHandleServer = Thread(target=handleServer, args=[client, playerData, serverData, clientData])
+    while True:
+        if not clientData["running"]:
             break
+        elif not clientData["inMenu"]:
+            success = client.initialiseSock()
+            if success == True:
+                tHandleServer.start()
+                break
+            else:
+                clientData["inMenu"] = True
+                clientData["problem"] = "Failed to connect to server"
         else:
-            clientData["inMenu"] = True
-    else:
-        sleep(0.5)
+            sleep(0.2)
+
+    if not clientData["running"]: break
+
+    tHandleServer.join()
+    clientData["inMenu"] = True
 
 try:
     tDisplay.join()
-    tHandleServer.join()
 except:
-    print("bye")
+    pass
+
+print("bye")

@@ -53,13 +53,13 @@ class Server:
         problems = []
         for otherConn in self.conns:
             if otherConn["username"] == username:
-                problems.append("username in use")
+                problems.append("Username in use.")
                 valid = False
                 break
 
         if len(username) < 2 or len(username) > 15:
             valid = False
-            problems.append("username must be between 2 and 15 characters long")
+            problems.append("Username must be between 2 and 15 characters long.")
 
         if valid:
             self.conns.append({"conn": conn, "addr": addr, "username": username})

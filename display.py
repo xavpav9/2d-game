@@ -130,6 +130,9 @@ def render(client, playerData, serverData, clientData):
                     elif evt.key == pygame.K_s:
                         newData = True
                         velocity[1] = 1
+                    elif evt.key == pygame.K_ESCAPE:
+                        client.close()
+                        clientData["inMenu"] = True
 
                     if newData:
                         client.sendData("v" + json.dumps(velocity))
@@ -216,7 +219,7 @@ def render(client, playerData, serverData, clientData):
                         sleep(0.1)
                         if clientData["inMenu"]:
                             # unsuccessful attempt to connect to server, so main.py has set the "inMenu" flag back to true
-                            bottomText = font.render("Failed to connect to server", True, RED)
+                            bottomText = font.render(clientData["problem"], True, RED)
                             menuWait = [0, False]
                             break
 
