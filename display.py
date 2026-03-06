@@ -68,10 +68,11 @@ def render(client, playerData, serverData, clientData):
     W, H = 800, 600
     WHITE, BLACK, RED, GREEN, BLUE = (255,255,255), (0,0,0), (255,0,0), (0,255,0), (0,0,255)
     FPS = 30
-    velocity = [0, 0]
-    clickPos = [0, 0]
-    btnPadding = [20, 10]
-    ctrl = False
+    velocity = [0, 0] # x and y velocities
+    clickPos = [0, 0] # position of click so that it is known when user releases mouse click
+    btnPadding = [20, 10] # x and y padding of buttons on menu screen
+    menuWait = [-1, False] # index 0: current frame since started, index 2: whether the client is trying to connect to the server or not
+    ctrl = False # whether ctrl is being held
     validUsernameCharacters = "abcdefghijklmnopqrstuvwxyz1234567890_- "
     featureIcons = {"noTexture": pygame.image.load("res/noTexture.png"), "rock": pygame.image.load("res/rock.png")}
 
@@ -88,6 +89,7 @@ def render(client, playerData, serverData, clientData):
     pygame.display.set_caption("Game")
 
     title = bigFont.render("Tag", True, BLACK)
+    bottomText = bigFont.render("", True, BLACK)
     playBtn = font.render("Play", True, BLACK)
     quitBtn = font.render("Quit", True, RED)
 
@@ -100,15 +102,21 @@ def render(client, playerData, serverData, clientData):
                 if evt.key == pygame.K_LCTRL:
                     ctrl = True
                 elif clientData["inMenu"]:
-                    if evt.unicode.lower() in validUsernameCharacters:
+                    if evt.unicode.lower() in validUsernameCharacters and (menuWait[0] == -1 or not menuWait[1]):
                         if len(client.username) < 15: client.username += evt.unicode
-                    elif evt.key == pygame.K_BACKSPACE:
+                    elif evt.key == pygame.K_BACKSPACE and (menuWait[0] == -1 or not menuWait[1]):
                         if ctrl: client.username = ""
                         elif len(client.username) > 0: client.username = client.username[:-1]
-                    elif evt.key == pygame.K_RETURN:
-                        clientData["inMenu"] = False
-                        sleep(0.8)
-                else:
+                    elif evt.key == pygame.K_RETURN: # Connect to game when <CR> is pressed
+                        if len(client.username) >= 2:
+                            clientData["inMenu"] = False
+                            bottomText = font.render("Connecting to server...", True, GREEN)
+                            menuWait = [FPS/4, True]
+                        else:
+                            bottomText = font.render("Username too short", True, RED)
+                            menuWait = [0, False]
+
+                elif menuWait[0] == -1:
                     newData = False
                     if evt.key == pygame.K_a:
                         newData = True
@@ -154,6 +162,7 @@ def render(client, playerData, serverData, clientData):
 
             elif evt.type == pygame.MOUSEBUTTONUP:
                 if clientData["inMenu"]:
+                    width, height = screen.get_size()
                     playBtnX, playBtnY = (width/2 - playBtn.get_size()[0]/2, height/2)
                     titleBtnX, titleBtnY = (width/2 - title.get_size()[0]/2, height/6)
                     quitBtnX, quitBtnY = (width/2 - quitBtn.get_size()[0]/2, 3*height/5)
@@ -161,9 +170,12 @@ def render(client, playerData, serverData, clientData):
                     if clickPos[0] - (playBtnX - btnPadding[0]) < (playBtn.get_size()[0] + btnPadding[0] * 2) and clickPos[1] - (playBtnY - btnPadding[1]) < (playBtn.get_size()[1] + btnPadding[1] * 2):
                         if len(client.username) >= 2:
                             clientData["inMenu"] = False
-                            sleep(0.8)
+                            bottomText = font.render("Connecting to server...", True, GREEN)
+                            menuWait = [FPS/4, True]
                         else:
-                            print("username too short")
+                            bottomText = font.render("Username too short", True, RED)
+                            menuWait = [0, False]
+
                     elif clickPos[0] - (quitBtnX - btnPadding[0]) < (quitBtn.get_size()[0] + btnPadding[0] * 2) and clickPos[1] - (quitBtnY - btnPadding[1]) < (quitBtn.get_size()[1] + btnPadding[1] * 2):
                         print("quiting")
                         clientData["running"] = False
@@ -175,7 +187,7 @@ def render(client, playerData, serverData, clientData):
 
         if not clientData["running"]: break
 
-        if clientData["inMenu"]:
+        if clientData["inMenu"] or menuWait[0] != -1:
             # -- Display Menu -- #
 
             width, height = screen.get_size()
@@ -194,6 +206,19 @@ def render(client, playerData, serverData, clientData):
             quitBtnX, quitBtnY = (width/2 - quitBtn.get_size()[0]/2, 3*height/5)
             screen.blit(quitBtn, (quitBtnX, quitBtnY))
             pygame.draw.rect(screen, BLACK, (quitBtnX - btnPadding[0], quitBtnY - btnPadding[1], quitBtn.get_size()[0] + btnPadding[0] * 2, quitBtn.get_size()[1] + btnPadding[1] * 2), 4, 5)
+
+            if menuWait[0] != -1:
+                screen.blit(bottomText, (width/2-bottomText.get_size()[0]/2, 4*height/5))
+            if menuWait[0] >= FPS:
+                menuWait[0] = -1
+                if menuWait[1]: # connecting to server = True
+                    while len(playerData) == 0:
+                        sleep(0.1)
+                        if clientData["inMenu"]:
+                            # unsuccessful attempt to connect to server, so main.py has set the "inMenu" flag back to true
+                            bottomText = font.render("Failed to connect to server", True, RED)
+                            menuWait = [0, False]
+                            break
 
         else:
             # -- Display Current Game -- #
@@ -231,6 +256,7 @@ def render(client, playerData, serverData, clientData):
 
         pygame.display.flip()
         clock.tick(FPS)
+        if menuWait[0] != -1: menuWait[0] += 1
 
     pygame.quit()
 

@@ -7,10 +7,14 @@ class Client:
         self.port = port
 
     def initialiseSock(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((self.ip, self.port))
-        self.headersize = int(self.sock.recv(8).decode(encoding="utf-8"))
-        self.sendData(self.username)
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect((self.ip, self.port))
+            self.headersize = int(self.sock.recv(8).decode(encoding="utf-8"))
+            self.sendData(self.username)
+            return True
+        except:
+            return False
 
     def sendData(self, data):
         encodedData = data.encode(encoding="utf-8")

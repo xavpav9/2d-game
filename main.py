@@ -43,9 +43,12 @@ while True:
     if not clientData["running"]:
         break
     elif not clientData["inMenu"]:
-        client.initialiseSock()
-        tHandleServer.start()
-        break
+        success = client.initialiseSock()
+        if success == True:
+            tHandleServer.start()
+            break
+        else:
+            clientData["inMenu"] = True
     else:
         sleep(0.5)
 
