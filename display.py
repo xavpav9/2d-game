@@ -10,7 +10,9 @@ def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
         width, height = player["size"]
         xPos, yPos = player["position"]
         username = player["username"]
-        renderedUsername = font.render(username, True, (0,0,0))
+        usernameColour = (0, 0, 255)
+        if player["tagger"]: usernameColour = (255, 0, 0)
+        renderedUsername = font.render(username, True, usernameColour)
         xUsername = xPos + (width / 2) - (renderedUsername.get_size()[0] / 2)
         yUsername = yPos - 10 - renderedUsername.get_size()[1]
 
@@ -223,8 +225,6 @@ def render(client, playerData, serverData, clientData):
                             elif x < 0 and y > 0:
                                 angle += 3 * math.pi / 2
 
-                        print(x, y)
-                        print(angle)
                         client.sendData("s" + json.dumps([angle]))
 
 
@@ -278,7 +278,7 @@ def render(client, playerData, serverData, clientData):
             borderWidth = 2
             pygame.draw.rect(screen, BLACK, (screenSize[0] / 2 - offset[0] - borderWidth, screenSize[1] / 2 - offset[1] - borderWidth, mapSize[0] + borderWidth * 2, mapSize[1] + borderWidth * 2), borderWidth)
 
-            # Draw Players and Features
+            # Draw Players and Features and Shots
             playerIncrementer = 0
             featuresIncrementer = 0
             for i in range(len(playerPositions) + len(featurePositions)):

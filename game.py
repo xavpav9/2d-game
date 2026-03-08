@@ -1,4 +1,4 @@
-import random, json, time
+import random, json, time, math
 
 """
 TODO
@@ -18,23 +18,17 @@ class Game:
         self.server = server
 
     def addPlayer(self, player):
-        valid = False
-        playerWidth, playerHeight = self.serverData["player"]["defaultSize"]
-        while not valid:
+        colliding = True
+        playerSize = self.serverData["player"]["defaultSize"]
+        playerWidth, playerHeight = playerSize
+        while colliding:
             valid = True
             position = [random.randint(0, self.serverData["map"][0] - playerWidth), random.randint(0, self.serverData["map"][1] - playerHeight)]
-            for otherPlayer in self.playerData + self.serverData["features"]:
-                otherPlayerWidth, otherPlayerHeight = otherPlayer["size"]
-                minimumXGap = (playerWidth + otherPlayerWidth) / 2
-                minimumYGap = (playerHeight + otherPlayerHeight) / 2
-                playerX = position[0] + playerWidth / 2
-                playerY = position[1] + playerHeight / 2
-                otherPlayerX = otherPlayer["position"][0] + otherPlayerWidth / 2
-                otherPlayerY = otherPlayer["position"][1] + otherPlayerHeight / 2
+            playerObject = {"position": position, "size": playerSize}
 
-                if abs(playerX - otherPlayerX) < minimumXGap and abs(playerY - otherPlayerY) < minimumYGap:
-                    valid = False
-                    break
+            for otherPlayer in self.playerData + self.serverData["features"]:
+                colliding = self.checkCollisions(playerObject, otherPlayer)
+                if colliding: break
 
         username = player["username"]
         colour = (random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
@@ -72,6 +66,11 @@ class Game:
         """
 
         try:
+            for otherPlayer in self.playerData:
+                if otherPlayer["username"] == player["username"]:
+                    player = otherPlayer
+                    break
+
             dataType = data[0]
             data = data[1:]
             username = player["username"]
@@ -87,11 +86,23 @@ class Game:
                             otherPlayer["velocity"] = newVelocity
                 case "s":
                     shootingAngle = json.loads(data)[0]
-                    print(shootingAngle)
+                    if player["tagger"] == True:
+                        self.serverData["shots"].append({"username": player["username"], "position": player["position"], "angle": shootingAngle, "time": 4, "size": [dimension * 2 for dimension in self.serverData["player"]["defaultSize"]], "playerSize": player["size"]})
 
         except Exception as e:
             print(e)
             print(f"Invalid data \"{data}\" sent by {player['username']}")
+
+    def checkCollisions(self, player, otherPlayer):
+        playerWidth, playerHeight = player["size"]
+        otherPlayerWidth, otherPlayerHeight = otherPlayer["size"]
+        minimumXGap = (playerWidth + otherPlayerWidth) / 2
+        minimumYGap = (playerHeight + otherPlayerHeight) / 2
+        playerX = player["position"][0] + playerWidth / 2
+        playerY = player["position"][1] + playerHeight / 2
+        otherPlayerX = otherPlayer["position"][0] + otherPlayerWidth / 2
+        otherPlayerY = otherPlayer["position"][1] + otherPlayerHeight / 2
+        return abs(playerX - otherPlayerX) < minimumXGap and abs(playerY - otherPlayerY) < minimumYGap
 
     def fixCollisions(self, player, otherPlayers, dx, dy, collides=True):
         playerWidth, playerHeight = player["size"]
@@ -107,7 +118,7 @@ class Game:
                 otherPlayerY = otherPlayer["position"][1] + otherPlayerHeight / 2
 
                 if abs(playerX - otherPlayerX) < minimumXGap and abs(playerY - otherPlayerY) < minimumYGap:
-                    if otherPlayer["collides"]:
+                    if otherPlayer["collides"] and player["collides"]:
                         if dx != 0 and not(abs(playerX - dx - otherPlayerX) + 1 < minimumXGap):
                             player["position"][0] += (minimumXGap - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
                         elif dy != 0 and not(abs(playerY - dy - otherPlayerY) + 1 < minimumYGap):
@@ -119,7 +130,7 @@ class Game:
                         # Hides username if you are behind a non-collidable object.
                         if otherPlayerY + otherPlayerHeight / 2 > playerY + playerHeight / 2: # otherPlayerY is from the centre, so add half of the height to get the bottom.
                             hidden = True
-                            if not collides: return True # if the player cannot collide, then this function was just run to see if they where hidden, so it can be exited.
+                            if not collides: return True # if the player cannot collide, then this function was just run to see if they were hidden, so it can be exited.
 
         return hidden
 
@@ -138,38 +149,80 @@ class Game:
                 playerWidth, playerHeight = player["size"]
                 velocity = player["velocity"]
                 dx = dy = 0
-                if velocity[0] == velocity[1] == 0:
-                    continue
-                elif velocity[0] != 0 and velocity[1] != 0:
-                    hypoteneuse = (velocity[0] ** 2 + velocity[1] ** 2) ** (1/2)
-                    ratio = speed / hypoteneuse
-                    dx = velocity[0] * ratio
-                    dy = velocity[1] * ratio
-                elif velocity[0] != 0:
-                    dx = velocity[0] * speed
-                else:
-                    dy = velocity[1] * speed
+                if velocity[0] != 0 or velocity[1] != 0:
+                    if velocity[0] != 0 and velocity[1] != 0:
+                        hypoteneuse = (velocity[0] ** 2 + velocity[1] ** 2) ** (1/2)
+                        ratio = speed / hypoteneuse
+                        dx = velocity[0] * ratio
+                        dy = velocity[1] * ratio
+                    elif velocity[0] != 0:
+                        dx = velocity[0] * speed
+                    else:
+                        dy = velocity[1] * speed
 
-                player["position"][0] += dx
-                player["position"][1] += dy
-                # Map border collisions.
-                if player["position"][0] < 0: player["position"][0] = 0
-                elif player["position"][0] > mapSize[0] - playerWidth: player["position"][0] = mapSize[0] - playerWidth
+                    player["position"][0] += dx
+                    player["position"][1] += dy
+                    # Map border collisions.
+                    if player["position"][0] < 0: player["position"][0] = 0
+                    elif player["position"][0] > mapSize[0] - playerWidth: player["position"][0] = mapSize[0] - playerWidth
 
-                if player["position"][1] < 0: player["position"][1] = 0
-                elif player["position"][1] > mapSize[1] - playerHeight: player["position"][1] = mapSize[1] - playerHeight
+                    if player["position"][1] < 0: player["position"][1] = 0
+                    elif player["position"][1] > mapSize[1] - playerHeight: player["position"][1] = mapSize[1] - playerHeight
 
-                if player["collides"]:
-                    # Handle other player collisions.
-                    hidden = self.fixCollisions(player, self.playerData, dx, dy)
+                    if player["collides"]:
+                        # Handle other player collisions.
+                        hidden = self.fixCollisions(player, self.playerData, dx, dy)
 
-                    # Handle feature collisions.
-                    hidden = self.fixCollisions(player, self.serverData["features"], dx, dy) or hidden
-                else:
-                    hidden = self.fixCollisions(player, self.serverData["features"], dx, dy)
+                        # Handle feature collisions.
+                        hidden = self.fixCollisions(player, self.serverData["features"], dx, dy) or hidden
+                    else:
+                        hidden = self.fixCollisions(player, self.serverData["features"], dx, dy, False)
 
-                player["hidden"] = hidden
+                    player["hidden"] = hidden
 
+                
+                # Check if they have been hit.
+                for shot in self.serverData["shots"]:
+                    # {"username", "playerSize", "position", "angle", "time", "size"}
+                    if shot["username"] != player["username"]:
+                        if shot["angle"] == 0: quadrant = 0
+                        else: quadrant = abs(shot["angle"] - math.pi / 8) // (math.pi / 4)
+                        position = [shot["position"][0] + shot["playerSize"][0] / 2, shot["position"][1] + shot["playerSize"][1] / 2]
+                        # position is currently at the centre of the player, pointing down right
+                        match quadrant:
+                            case 0: # above player
+                                position[0] -= shot["size"][0] / 2
+                                position[1] -= shot["size"][1]
+                            case 1: # top right
+                                position[1] -= shot["size"][1]
+                            case 2: # right
+                                position[1] -= shot["size"][1] / 2
+                            # case 3: bottom right, already in correct position
+                            case 4: # bottom
+                                position[0] -= shot["size"][0] / 2
+                            case 5: # bottom left
+                                position[0] -= shot["size"][0]
+                            case 6: # left
+                                position[0] -= shot["size"][0]
+                                position[1] -= shot["size"][1] / 2
+                            case 7: # top left
+                                position[0] -= shot["size"][0]
+                                position[1] -= shot["size"][1]
+                                
+                        shotObject = {"position": position, "size": shot["size"]}
+                        colliding = self.checkCollisions(player, shotObject)
+
+                        if colliding:
+                            for otherPlayer in self.playerData: otherPlayer["tagger"] = False
+                            player["tagger"] = True
+                            shot["time"] = 0
+
+            i = 0
+            while i < len(self.serverData["shots"]):
+                shot = self.serverData["shots"][i]
+                shot["time"] -= 1
+                if shot["time"] <= 0: self.serverData["shots"].pop(i)
+                else: i += 1
 
             self.server.distributeData("p" + json.dumps(self.playerData), [])
             endTime = time.time()

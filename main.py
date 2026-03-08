@@ -4,7 +4,7 @@ from threading import Thread
 from time import sleep
 
 ip = "127.0.0.1"
-port = 2000
+port = 2001
 
 def handleServer(client, playerData, serverData, clientData):
     while True:

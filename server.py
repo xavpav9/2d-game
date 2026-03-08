@@ -3,7 +3,7 @@ from game import Game
 from threading import Thread
 
 ip = "0.0.0.0"
-port = 2000
+port = 2001
 
 class Server:
     def __init__(self, ip, port, headersize, gameHandler):
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         features.append({"name": "bush", "position": [random.randint(0, mapSize[0] - bushWidth), i * 100 + random.randint(-80, 80)], "size": [bushWidth, bushHeight], "collides": False})
 
 
-    gameHandler = Game([], {"map": mapSize, "player": {"defaultSize": [30, 30]}, "features": features})
+    gameHandler = Game([], {"map": mapSize, "player": {"defaultSize": [30, 30]}, "features": features, "shots": []})
     server = Server(ip, port, 8, gameHandler)
     gameHandler.addServer(server)
 
