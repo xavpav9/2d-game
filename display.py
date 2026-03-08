@@ -55,7 +55,6 @@ def displayPlayer(screen, playerInfo, usernameInfo, offset):
         quadrant = abs((shot["angle"] + math.pi / 8) % (2 * math.pi)) // (math.pi / 4)
         position = [playerX + playerWidth / 2, playerY + playerHeight / 2]
         # position is currently at the centre of the player, pointing down right
-        print(quadrant)
         match quadrant:
             case 0: # above player
                 position[0] -= shot["size"][0] / 2
@@ -204,6 +203,28 @@ def render(client, playerData, serverData, clientData):
 
             elif evt.type == pygame.MOUSEBUTTONDOWN:
                 clickPos = pygame.mouse.get_pos()
+                if not clientData["inMenu"]:
+                    x = clickPos[0] - screenSize[0] / 2
+                    y = screenSize[1] / 2 - clickPos[1]
+
+                    if x == 0:
+                        if y > 0: angle = 0
+                        else: angle = math.pi / 2
+                    elif y == 0:
+                        if x > 0: angle = math.pi / 4
+                        else: angle = 3 * math.pi / 4
+                    else:
+                        angle = math.atan(abs(y / x))
+                        if x > 0 and y > 0:
+                            angle = math.pi / 2 - angle
+                        elif x > 0 and y < 0:
+                            angle += math.pi / 2
+                        elif x < 0 and y < 0:
+                            angle = 3 * math.pi / 2 - angle
+                        elif x < 0 and y > 0:
+                            angle += 3 * math.pi / 2
+
+                    client.sendData("s" + json.dumps([angle]))
 
             elif evt.type == pygame.MOUSEBUTTONUP:
                 if clientData["inMenu"]:
@@ -233,29 +254,6 @@ def render(client, playerData, serverData, clientData):
                         clientData["inMenu"] = True
                         bottomText = font.render("Disconnected from server.", True, RED)
                         menuWait = [0, False]
-
-                    else:
-                        x = clickPos[0] - screenSize[0] / 2
-                        y = screenSize[1] / 2 - clickPos[1]
-
-                        if x == 0:
-                            if y > 0: angle = 0
-                            else: angle = math.pi / 2
-                        elif y == 0:
-                            if x > 0: angle = math.pi / 4
-                            else: angle = 3 * math.pi / 4
-                        else:
-                            angle = math.atan(abs(y / x))
-                            if x > 0 and y > 0:
-                                angle = math.pi / 2 - angle
-                            elif x > 0 and y < 0:
-                                angle += math.pi / 2
-                            elif x < 0 and y < 0:
-                                angle = 3 * math.pi / 2 - angle
-                            elif x < 0 and y > 0:
-                                angle += 3 * math.pi / 2
-
-                        client.sendData("s" + json.dumps([angle]))
 
 
 
