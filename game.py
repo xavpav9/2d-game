@@ -2,6 +2,8 @@ import random, json, time
 
 """
 TODO
+    - Fix players showing on top of bushes. Only seems to happen when there are more than one person.
+    - Red nametag if tagger.
     - Allow player to pick their colour.
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Will have to preconfigure.
     - Add player icons perhaps, instead of solid colours.
@@ -12,6 +14,9 @@ class Game:
     def __init__(self, playerData, serverData):
         self.playerData = playerData
         self.serverData = serverData
+
+    def addServer(self, server):
+        self.server = server
 
     def addPlayer(self, player):
         valid = False
@@ -34,10 +39,32 @@ class Game:
 
         username = player["username"]
         colour = (random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
-        self.playerData.append({"username": username, "position": position, "colour": colour, "velocity": [0, 0], "size": [playerWidth, playerHeight], "collides": True, "hidden": False})
+
+        tagger = False
+        if len(self.playerData) == 0:
+            tagger = True
+            self.server.distributeData("a" + json.dumps([f"{username} is the new tagger."]), [])
+        else:
+            for otherPlayer in self.playerData:
+                if otherPlayer["tagger"]:
+                    currentTagger = otherPlayer
+                    break
+
+            self.server.sendData(player["conn"], "a" + json.dumps([f"{currentTagger['username']} is the tagger."]))
+
+        self.playerData.append({"username": username, "position": position, "colour": colour, "velocity": [0, 0], "size": [playerWidth, playerHeight], "collides": True, "hidden": False, "tagger": tagger})
     
     def removePlayer(self, index):
+        replace = False
+        if self.playerData[index]["tagger"] and len(self.playerData) > 1: replace = True
         self.playerData.pop(index)
+
+        if replace:
+            newTagger = self.playerData[random.randint(0, len(self.playerData) -1)]
+            newTagger["tagger"] = True
+
+            self.server.distributeData("a" + json.dumps([f"{newTagger['username']} is the new tagger."]), [])
+        
 
     def handleData(self, data, player):
         try:
@@ -89,7 +116,7 @@ class Game:
         return hidden
 
 
-    def tick(self, server, running):
+    def tick(self, running):
         tickRate = 30
         frameTime = 1000 / tickRate
         speed = 8
@@ -136,7 +163,7 @@ class Game:
                 player["hidden"] = hidden
 
 
-            server.distributeData("p" + json.dumps(self.playerData), [])
+            self.server.distributeData("p" + json.dumps(self.playerData), [])
             endTime = time.time()
             totalTime = (endTime-startTime)
             if totalTime < frameTime:

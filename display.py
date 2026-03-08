@@ -75,7 +75,8 @@ def render(client, playerData, serverData, clientData):
     clickPos = [0, 0] # position of click so that it is known when user releases mouse click
     btnPadding = [20, 10] # x and y padding of buttons on menu screen
     uiPadding = [10, 10] # x and y padding for ui on game screen
-    menuWait = [-1, False] # index 0: current frame since started, index 2: whether the client is trying to connect to the server or not
+    menuWait = [-1, False] # for bottomText pop ups. index 0: current frame since started, index 2: whether the client is trying to connect to the server or not
+    alertWait = [-1] # for game alerts. index 0: current frame since started
     ctrl = False # whether ctrl is being held
     validUsernameCharacters = "abcdefghijklmnopqrstuvwxyz1234567890_- "
     featureIcons = {"noTexture": pygame.image.load("res/noTexture.png"), "rock": pygame.image.load("res/rock.png"), "bush": pygame.image.load("res/bush.png")}
@@ -94,12 +95,14 @@ def render(client, playerData, serverData, clientData):
     pygame.display.set_caption("Game")
 
     title = bigFont.render("Tag", True, BLACK)
-    bottomText = bigFont.render("", True, BLACK)
+    bottomText = font.render("", True, BLACK)
+    alertText = bigFont.render("", True, RED)
     playBtn = font.render("Play", True, BLACK)
     quitBtn = font.render("Quit", True, RED)
 
 
     while clientData["running"]:
+        screenSize = screen.get_size()
         for evt in pygame.event.get():
             if evt.type == pygame.QUIT:
                 clientData["running"] = False
@@ -175,7 +178,7 @@ def render(client, playerData, serverData, clientData):
 
             elif evt.type == pygame.MOUSEBUTTONUP:
                 if clientData["inMenu"]:
-                    width, height = screen.get_size()
+                    width, height = screenSize
                     # This refers to the x and y of the top left of the text for each one.
                     playBtnX, playBtnY = (width/2 - playBtn.get_size()[0]/2, height/2)
                     titleBtnX, titleBtnY = (width/2 - title.get_size()[0]/2, height/6)
@@ -194,7 +197,7 @@ def render(client, playerData, serverData, clientData):
                         clientData["running"] = False
 
                 else:
-                    leaveBtnX, leaveBtnY = (screen.get_size()[0] - leaveBtn.get_size()[0] - uiPadding[0], uiPadding[1])
+                    leaveBtnX, leaveBtnY = (screenSize[0] - leaveBtn.get_size()[0] - uiPadding[0], uiPadding[1])
 
                     if clickPos[0] - leaveBtnX < leaveBtn.get_size()[0] and clickPos[1] - leaveBtnY < leaveBtn.get_size()[1]:
                         client.close()
@@ -210,7 +213,7 @@ def render(client, playerData, serverData, clientData):
         if clientData["inMenu"] or menuWait[0] != -1:
             # -- Display Menu -- #
 
-            width, height = screen.get_size()
+            width, height = screenSize
             usernameDisplay = font.render(client.username, True, BLUE)
 
             titleBtnX, titleBtnY = (width/2 - title.get_size()[0]/2, height/6)
@@ -250,7 +253,7 @@ def render(client, playerData, serverData, clientData):
             # Draw Map
             mapSize = serverData["map"]
             borderWidth = 2
-            pygame.draw.rect(screen, BLACK, (screen.get_size()[0] / 2 - offset[0] - borderWidth, screen.get_size()[1] / 2 - offset[1] - borderWidth, mapSize[0] + borderWidth * 2, mapSize[1] + borderWidth * 2), borderWidth)
+            pygame.draw.rect(screen, BLACK, (screenSize[0] / 2 - offset[0] - borderWidth, screenSize[1] / 2 - offset[1] - borderWidth, mapSize[0] + borderWidth * 2, mapSize[1] + borderWidth * 2), borderWidth)
 
             # Draw Players and Features
             playerIncrementer = 0
@@ -275,13 +278,25 @@ def render(client, playerData, serverData, clientData):
             screen.blit(coordinates, uiPadding)
 
             # Render leave button
-            leaveBtnX, leaveBtnY = (screen.get_size()[0] - leaveBtn.get_size()[0] - uiPadding[0], uiPadding[1])
+            leaveBtnX, leaveBtnY = (screenSize[0] - leaveBtn.get_size()[0] - uiPadding[0], uiPadding[1])
             screen.blit(leaveBtn, (leaveBtnX, leaveBtnY))
+
+            # Manage alert text
+            if clientData["alert"] != "":
+                alertText = bigFont.render(clientData["alert"], True, RED)
+                clientData["alert"] = ""
+                alertWait[0] = 0
+            if alertWait[0] != -1:
+                screen.blit(alertText, (screenSize[0] / 2 - alertText.get_size()[0] / 2, screenSize[1] / 2 - alertText.get_size()[1] / 2))
+            if alertWait[0] > FPS:
+                alertWait[0] = -1
+
 
 
         pygame.display.flip()
         clock.tick(FPS)
         if menuWait[0] != -1: menuWait[0] += 1
+        if alertWait[0] != -1: alertWait[0] += 1
 
     pygame.quit()
 

@@ -28,12 +28,14 @@ def handleServer(client, playerData, serverData, clientData):
                 for reason in information: print(f"- {reason}")
                 clientData["problem"] = " ".join(information)
                 return 
+            case "a":
+                clientData["alert"] = information[0]
             case _:
                 print(f"unknown request \"{data[0]}\" from server")
 
 playerData = []
 serverData = {}
-clientData = {"inMenu": True, "running": True, "problem": ""}
+clientData = {"inMenu": True, "running": True, "problem": "", "alert": ""}
 client = Client(ip, port, f"Player_{str(random.randint(0, 999)).zfill(3)}")
 
 tDisplay = Thread(target=display.render, args=[client, playerData, serverData, clientData])

@@ -19,6 +19,13 @@ class Server:
         self.connNames = [self.sock]
 
     def sendData(self, conn, data):
+        """
+        prefix:
+            s = serverData
+            p = playerData
+            d = disconnect
+            a = alert
+        """
         encodedData = data.encode(encoding="utf-8")
         dataLength = len(encodedData)
         formattedData = f"{dataLength:<{self.headersize}}".encode(encoding="utf-8") + encodedData
@@ -126,10 +133,11 @@ if __name__ == "__main__":
 
     gameHandler = Game([], {"map": mapSize, "player": {"defaultSize": [30, 30]}, "features": features})
     server = Server(ip, port, 8, gameHandler)
+    gameHandler.addServer(server)
 
 
     running = [True]
-    tGameLoop = Thread(target=gameHandler.tick, args=[server, running, ])
+    tGameLoop = Thread(target=gameHandler.tick, args=[running, ])
     tGameLoop.start()
     server.automaticLoop(running)
 
