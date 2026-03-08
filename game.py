@@ -2,9 +2,8 @@ import random, json, time
 
 """
 TODO
-    - Fix players showing on top of bushes. Only seems to happen when there are more than one person.
-    - Red nametag if tagger.
-    - Allow player to pick their colour.
+    - Red nametag if tagger and blue if not.
+    - Allow player to pick their colour or automate based off of role ( or automate nametag based off of role ).
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Will have to preconfigure.
     - Add player icons perhaps, instead of solid colours.
     - Add arrow key and controller support.

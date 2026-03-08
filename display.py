@@ -16,20 +16,17 @@ def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
 
         usernameInfo = [xUsername, yUsername, renderedUsername]
         playerInfo = [xPos, yPos, player["colour"], (width, height), player["hidden"]]
-        if username == currentUsername:
-            usernamePositions.insert(0, usernameInfo)
-            playerPositions.insert(0, playerInfo)
-        else:
-            usernamePositions.append(usernameInfo)
-            playerPositions.append(playerInfo)
 
-    if len(playerPositions) > 2:
-        # sorting based off of the y value + playerSize.
-        tempPlayerPositions, tempUsernamePositions = [list(positions) for positions in zip(*sorted(zip(playerPositions[1:], usernamePositions[1:]), key=lambda data: data[0][1] + data[0][3], reverse=True))]
-        playerPositions = [playerPositions[0]] + tempPlayerPositions
-        usernamePositions = [usernamePositions[0]] + tempUsernamePositions
+        if currentUsername == username:
+            currentPlayerInfo = playerInfo
 
-    return playerPositions[::-1], usernamePositions[::-1]
+        usernamePositions.append(usernameInfo)
+        playerPositions.append(playerInfo)
+
+    # sorting based off of the y value + playerSize.
+    playerPositions, usernamePositions = [list(positions) for positions in zip(*sorted(zip(playerPositions, usernamePositions), key=lambda data: data[0][1] + data[0][3][1]))]
+
+    return playerPositions, usernamePositions, currentPlayerInfo
 
 def getFeaturesDisplayInfo(featuresData):
     # featureInfo = [x, y, size, name] size=width,height
@@ -246,9 +243,9 @@ def render(client, playerData, serverData, clientData):
         else:
             # -- Display Current Game -- #
 
-            playerPositions, usernamePositions = getPlayerDisplayInfo(client.username, font, playerData, serverData)
+            playerPositions, usernamePositions, currentPlayerInfo = getPlayerDisplayInfo(client.username, font, playerData, serverData)
             featurePositions = getFeaturesDisplayInfo(serverData["features"])
-            offset = [playerPositions[-1][i] + playerPositions[-1][3][i] / 2 for i in range(2)]
+            offset = [currentPlayerInfo[i] + currentPlayerInfo[3][i] / 2 for i in range(2)]
 
             # Draw Map
             mapSize = serverData["map"]
@@ -274,7 +271,7 @@ def render(client, playerData, serverData, clientData):
 
 
             # Display Player Coordinates
-            coordinates = bigFont.render(f"{int(playerPositions[-1][0])}, {int(playerPositions[-1][1])}", True, BLACK)
+            coordinates = bigFont.render(f"{int(currentPlayerInfo[0])}, {int(currentPlayerInfo[1])}", True, BLACK)
             screen.blit(coordinates, uiPadding)
 
             # Render leave button
