@@ -66,6 +66,11 @@ class Game:
         
 
     def handleData(self, data, player):
+        """
+            v = velocity change
+            s = tagger shoots
+        """
+
         try:
             dataType = data[0]
             data = data[1:]
@@ -80,6 +85,10 @@ class Game:
                     for otherPlayer in self.playerData:
                         if otherPlayer["username"] == username:
                             otherPlayer["velocity"] = newVelocity
+                case "s":
+                    shootingAngle = json.loads(data)[0]
+                    print(shootingAngle)
+
         except Exception as e:
             print(e)
             print(f"Invalid data \"{data}\" sent by {player['username']}")

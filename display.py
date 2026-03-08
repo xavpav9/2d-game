@@ -1,4 +1,4 @@
-import pygame, json
+import pygame, json, math
 from time import sleep
 
 def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
@@ -201,6 +201,32 @@ def render(client, playerData, serverData, clientData):
                         clientData["inMenu"] = True
                         bottomText = font.render("Disconnected from server.", True, RED)
                         menuWait = [0, False]
+
+                    else:
+                        x = clickPos[0] - screenSize[0] / 2
+                        y = screenSize[1] / 2 - clickPos[1]
+
+                        if x == 0:
+                            if y > 0: angle = 0
+                            else: angle = math.pi / 2
+                        elif y == 0:
+                            if x > 0: angle = math.pi / 4
+                            else: angle = 3 * math.pi / 4
+                        else:
+                            angle = math.atan(abs(y / x))
+                            if x > 0 and y > 0:
+                                angle = math.pi / 2 - angle
+                            elif x > 0 and y < 0:
+                                angle += math.pi / 2
+                            elif x < 0 and y < 0:
+                                angle = 3 * math.pi / 2 - angle
+                            elif x < 0 and y > 0:
+                                angle += 3 * math.pi / 2
+
+                        print(x, y)
+                        print(angle)
+                        client.sendData("s" + json.dumps([angle]))
+
 
 
         screen.fill(WHITE)
