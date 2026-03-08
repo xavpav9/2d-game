@@ -9,6 +9,7 @@ def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
     for player in playerData:
         width, height = player["size"]
         xPos, yPos = player["position"]
+        shots = player["shots"]
         username = player["username"]
         usernameColour = (0, 0, 255)
         if player["tagger"]: usernameColour = (255, 0, 0)
@@ -17,7 +18,7 @@ def getPlayerDisplayInfo(currentUsername, font, playerData, serverData):
         yUsername = yPos - 10 - renderedUsername.get_size()[1]
 
         usernameInfo = [xUsername, yUsername, renderedUsername]
-        playerInfo = [xPos, yPos, player["colour"], (width, height), player["hidden"]]
+        playerInfo = [xPos, yPos, player["colour"], (width, height), player["hidden"], shots]
 
         if currentUsername == username:
             currentPlayerInfo = playerInfo
@@ -44,16 +45,45 @@ def getFeaturesDisplayInfo(featuresData):
 
 
 def displayPlayer(screen, playerInfo, usernameInfo, offset):
-    # playerInfo = [x, y, colour, size, hiddenUsername] size=width,height
-    width, height = playerInfo[3]
+    # playerInfo = [x, y, colour, size, hiddenUsername, shots] size=width,height, shots={angle, size}
+    playerWidth, playerHeight = playerInfo[3]
     playerX = playerInfo[0] - offset[0] + screen.get_size()[0] / 2
     playerY = playerInfo[1] - offset[1] + screen.get_size()[1] / 2
+    
+    # Draw shots
+    for shot in playerInfo[5]:
+        quadrant = abs((shot["angle"] + math.pi / 8) % (2 * math.pi)) // (math.pi / 4)
+        position = [playerX + playerWidth / 2, playerY + playerHeight / 2]
+        # position is currently at the centre of the player, pointing down right
+        print(quadrant)
+        match quadrant:
+            case 0: # above player
+                position[0] -= shot["size"][0] / 2
+                position[1] -= shot["size"][1]
+            case 1: # top right
+                position[1] -= shot["size"][1]
+            case 2: # right
+                position[1] -= shot["size"][1] / 2
+            # case 3: bottom right, already in correct position
+            case 4: # bottom
+                position[0] -= shot["size"][0] / 2
+            case 5: # bottom left
+                position[0] -= shot["size"][0]
+            case 6: # left
+                position[0] -= shot["size"][0]
+                position[1] -= shot["size"][1] / 2
+            case 7: # top left
+                position[0] -= shot["size"][0]
+                position[1] -= shot["size"][1]
+
+        pygame.draw.rect(screen, (255, 0, 0), (position[0], position[1], shot["size"][0], shot["size"][1]))
+
     if not playerInfo[4]:
         usernameX = usernameInfo[0] - offset[0] + screen.get_size()[0] / 2
         usernameY = usernameInfo[1] - offset[1] + screen.get_size()[1] / 2
         screen.blit(usernameInfo[2], (usernameX, usernameY))
 
-    pygame.draw.rect(screen, playerInfo[2], (playerX, playerY, width, height))
+    pygame.draw.rect(screen, playerInfo[2], (playerX, playerY, playerWidth, playerHeight))
 
 def displayFeature(screen, featureInfo, featureIcons, offset):
     # featureInfo = [x, y, size, name] size=width,height

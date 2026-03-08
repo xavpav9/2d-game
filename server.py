@@ -3,7 +3,7 @@ from game import Game
 from threading import Thread
 
 ip = "0.0.0.0"
-port = 2001
+port = 2000
 
 class Server:
     def __init__(self, ip, port, headersize, gameHandler):

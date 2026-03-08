@@ -45,7 +45,7 @@ class Game:
 
             self.server.sendData(player["conn"], "a" + json.dumps([f"{currentTagger['username']} is the tagger."]))
 
-        self.playerData.append({"username": username, "position": position, "colour": colour, "velocity": [0, 0], "size": [playerWidth, playerHeight], "collides": True, "hidden": False, "tagger": tagger})
+        self.playerData.append({"username": username, "position": position, "colour": colour, "velocity": [0, 0], "size": [playerWidth, playerHeight], "collides": True, "hidden": False, "tagger": tagger, "shots": []})
     
     def removePlayer(self, index):
         replace = False
@@ -86,8 +86,10 @@ class Game:
                             otherPlayer["velocity"] = newVelocity
                 case "s":
                     shootingAngle = json.loads(data)[0]
+                    size = [dimension * 1.1 for dimension in self.serverData["player"]["defaultSize"]]
                     if player["tagger"] == True:
-                        self.serverData["shots"].append({"username": player["username"], "position": player["position"], "angle": shootingAngle, "time": 4, "size": [dimension * 2 for dimension in self.serverData["player"]["defaultSize"]], "playerSize": player["size"]})
+                        self.serverData["shots"].append({"username": player["username"], "position": player["position"], "angle": shootingAngle, "time": 4, "size": size, "playerSize": player["size"]})
+                        player["shots"].append({"size": size, "angle": shootingAngle})
 
         except Exception as e:
             print(e)
@@ -185,8 +187,7 @@ class Game:
                 for shot in self.serverData["shots"]:
                     # {"username", "playerSize", "position", "angle", "time", "size"}
                     if shot["username"] != player["username"]:
-                        if shot["angle"] == 0: quadrant = 0
-                        else: quadrant = abs(shot["angle"] - math.pi / 8) // (math.pi / 4)
+                        quadrant = abs((shot["angle"] + math.pi / 8) % (2 * math.pi)) // (math.pi / 4)
                         position = [shot["position"][0] + shot["playerSize"][0] / 2, shot["position"][1] + shot["playerSize"][1] / 2]
                         # position is currently at the centre of the player, pointing down right
                         match quadrant:
@@ -215,13 +216,18 @@ class Game:
                         if colliding:
                             for otherPlayer in self.playerData: otherPlayer["tagger"] = False
                             player["tagger"] = True
-                            shot["time"] = 0
+                            if shot["time"] >= 2: shot["time"] = 2
 
             i = 0
             while i < len(self.serverData["shots"]):
                 shot = self.serverData["shots"][i]
                 shot["time"] -= 1
-                if shot["time"] <= 0: self.serverData["shots"].pop(i)
+                if shot["time"] <= 0:
+                    self.serverData["shots"].pop(i)
+                    for player in self.playerData:
+                        if player["username"] == shot["username"]:
+                            player["shots"].pop(0) # will always be the oldest shot
+                            break
                 else: i += 1
 
             self.server.distributeData("p" + json.dumps(self.playerData), [])
