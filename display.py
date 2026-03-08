@@ -181,7 +181,7 @@ def render(client, playerData, serverData, clientData):
                     titleBtnX, titleBtnY = (width/2 - title.get_size()[0]/2, height/6)
                     quitBtnX, quitBtnY = (width/2 - quitBtn.get_size()[0]/2, 3*height/5)
 
-                    if clickPos[0] - (playBtnX - btnPadding[0]) < (playBtn.get_size()[0] + btnPadding[0] * 2) and clickPos[1] - (playBtnY - btnPadding[1]) < (playBtn.get_size()[1] + btnPadding[1] * 2):
+                    if 0 < clickPos[0] - (playBtnX - btnPadding[0]) < (playBtn.get_size()[0] + btnPadding[0] * 2) and 0 < clickPos[1] - (playBtnY - btnPadding[1]) < (playBtn.get_size()[1] + btnPadding[1] * 2):
                         if len(client.username) >= 2:
                             clientData["inMenu"] = False
                             bottomText = font.render("Connecting to server...", True, GREEN)
@@ -190,13 +190,13 @@ def render(client, playerData, serverData, clientData):
                             bottomText = font.render("Username too short", True, RED)
                             menuWait = [0, False]
 
-                    elif clickPos[0] - (quitBtnX - btnPadding[0]) < (quitBtn.get_size()[0] + btnPadding[0] * 2) and clickPos[1] - (quitBtnY - btnPadding[1]) < (quitBtn.get_size()[1] + btnPadding[1] * 2):
+                    elif 0 < clickPos[0] - (quitBtnX - btnPadding[0]) < (quitBtn.get_size()[0] + btnPadding[0] * 2) and 0 < clickPos[1] - (quitBtnY - btnPadding[1]) < (quitBtn.get_size()[1] + btnPadding[1] * 2):
                         clientData["running"] = False
 
                 else:
                     leaveBtnX, leaveBtnY = (screenSize[0] - leaveBtn.get_size()[0] - uiPadding[0], uiPadding[1])
 
-                    if clickPos[0] - leaveBtnX < leaveBtn.get_size()[0] and clickPos[1] - leaveBtnY < leaveBtn.get_size()[1]:
+                    if 0 < clickPos[0] - leaveBtnX < leaveBtn.get_size()[0] and 0 < clickPos[1] - leaveBtnY < leaveBtn.get_size()[1]:
                         client.close()
                         clientData["inMenu"] = True
                         bottomText = font.render("Disconnected from server.", True, RED)
