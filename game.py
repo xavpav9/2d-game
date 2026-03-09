@@ -1,11 +1,11 @@
 import random, json, time, math
 
+TICKRATE = 30
+
 """
 TODO
-    - Red nametag if tagger and blue if not.
-    - Allow player to pick their colour or automate based off of role ( or automate nametag based off of role ).
-    - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Will have to preconfigure.
     - Add player icons perhaps, instead of solid colours.
+    - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Will have to preconfigure.
     - Add arrow key and controller support.
 """
 
@@ -13,6 +13,7 @@ class Game:
     def __init__(self, playerData, serverData):
         self.playerData = playerData
         self.serverData = serverData
+        self.tickRate = 30
 
     def addServer(self, server):
         self.server = server
@@ -53,6 +54,7 @@ class Game:
                                 "collides": True,
                                 "hidden": False,
                                 "tagger": tagger,
+                                "cooldown": 0,
                                 "shots": []})
     
     def removePlayer(self, index):
@@ -93,10 +95,14 @@ class Game:
                         if otherPlayer["username"] == username:
                             otherPlayer["velocity"] = newVelocity
                 case "s":
-                    shootingAngle = json.loads(data)[0]
-                    size = [dimension * 1.1 for dimension in self.serverData["player"]["defaultSize"]]
-                    if player["tagger"] == True:
-                        player["shots"].append({"size": size, "angle": shootingAngle, "time": 4})
+                    if player["cooldown"] <= 0:
+                        player["cooldown"] = self.tickRate
+                        shootingAngle = json.loads(data)[0]
+                        size = [dimension * 1.1 for dimension in self.serverData["player"]["defaultSize"]]
+                        if player["tagger"] == True:
+                            player["shots"].append({"size": size,
+                                                    "angle": shootingAngle,
+                                                    "time": self.tickRate / 7})
 
         except Exception as e:
             print(e)
@@ -145,7 +151,7 @@ class Game:
 
 
     def tick(self, running):
-        tickRate = 30
+        tickRate = self.tickRate
         frameTime = 1000 / tickRate
         speed = 8
 
@@ -223,9 +229,14 @@ class Game:
 
                             if colliding and not player["tagger"]:
                                 otherPlayer["tagger"] = False
+                                otherPlayer["cooldown"] = 0
                                 player["tagger"] = True
                                 if shot["time"] >= 2: shot["time"] = 2
 
+                if player["cooldown"] > 0: player["cooldown"] -= 1
+                else: player["cooldown"] = 0
+
+            # Reduce existence time for shot
             for player in self.playerData:
                 i = 0
                 while i < len(player["shots"]):

@@ -5,6 +5,8 @@ from threading import Thread
 ip = "0.0.0.0"
 port = 2000
 
+TICKRATE = 30
+
 class Server:
     def __init__(self, ip, port, headersize, gameHandler):
         self.headersize = headersize
@@ -127,11 +129,22 @@ if __name__ == "__main__":
         bushWidth = random.randint(80, 160)
         bushHeight = bushWidth // 2 + random.randint(-2, 2)
 
-        features.append({"name": "rock", "position": [random.randint(0, mapSize[0] - rockWidth), i * 100 + random.randint(-80, 80)], "size": [rockWidth, rockHeight], "collides": True})
-        features.append({"name": "bush", "position": [random.randint(0, mapSize[0] - bushWidth), i * 100 + random.randint(-80, 80)], "size": [bushWidth, bushHeight], "collides": False})
+        features.append({"name": "rock",
+                         "position": [random.randint(0, mapSize[0] - rockWidth), i * 100 + random.randint(-80, 80)],
+                         "size": [rockWidth, rockHeight],
+                         "collides": True})
+
+        features.append({"name": "bush",
+                         "position": [random.randint(0, mapSize[0] - bushWidth), i * 100 + random.randint(-80, 80)],
+                         "size": [bushWidth, bushHeight],
+                         "collides": False})
 
 
-    gameHandler = Game([], {"map": mapSize, "player": {"defaultSize": [30, 30]}, "features": features})
+    gameHandler = Game([], {"map": mapSize,
+                            "player": {"defaultSize": [30, 30]},
+                            "features": features,
+                            "tickRate": TICKRATE})
+
     server = Server(ip, port, 8, gameHandler)
     gameHandler.addServer(server)
 

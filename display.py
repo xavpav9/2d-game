@@ -118,6 +118,7 @@ def render(client, playerData, serverData, clientData):
 
     clock = pygame.time.Clock()
     bigFont = pygame.font.SysFont(typeface, 40, True, True)
+    mediumFont = pygame.font.SysFont(typeface, 30, True, True)
     font = pygame.font.SysFont(typeface, 20, True, True)
     screen = pygame.display.set_mode((W, H))
     pygame.display.set_caption("Game")
@@ -297,6 +298,11 @@ def render(client, playerData, serverData, clientData):
         else:
             # -- Display Current Game -- #
 
+            for otherPlayer in playerData:
+                if otherPlayer["username"] == client.username:
+                    player = otherPlayer
+                    break
+
             playerPositions, usernamePositions, currentPlayerInfo = getPlayerDisplayInfo(client.username, font, playerData, serverData)
             featurePositions = getFeaturesDisplayInfo(serverData["features"])
             offset = [currentPlayerInfo[i] + currentPlayerInfo[3][i] / 2 for i in range(2)]
@@ -325,12 +331,30 @@ def render(client, playerData, serverData, clientData):
 
 
             # Display Player Coordinates
-            coordinates = bigFont.render(f"{int(currentPlayerInfo[0])}, {int(currentPlayerInfo[1])}", True, BLACK)
+            coordinates = mediumFont.render(f"{int(currentPlayerInfo[0])}, {int(currentPlayerInfo[1])}", True, BLACK)
             screen.blit(coordinates, uiPadding)
 
             # Render leave button
             leaveBtnX, leaveBtnY = (screenSize[0] - leaveBtn.get_size()[0] - uiPadding[0], uiPadding[1])
             screen.blit(leaveBtn, (leaveBtnX, leaveBtnY))
+
+            # Render shot cooldown
+            if player["tagger"]:
+                cooldown = player["cooldown"]
+                if cooldown <= 0: cooldownText = mediumFont.render("READY", True, GREEN)
+                else: cooldownText = mediumFont.render(str(round(cooldown / serverData["tickRate"], 1)), True, RED)
+
+                screen.blit(cooldownText, (uiPadding[0], screenSize[1] - uiPadding[1] - cooldownText.get_size()[1]))
+
+            # Render current role
+            if player["tagger"]:
+                roleText = mediumFont.render("Tagger", True, RED)
+            else:
+                roleText = mediumFont.render("Runner", True, BLUE)
+
+            screen.blit(roleText, (screenSize[0] - uiPadding[0] - roleText.get_size()[0], screenSize[1] - uiPadding[1] - roleText.get_size()[1]))
+
+
 
             # Manage alert text
             if clientData["alert"] != "":
