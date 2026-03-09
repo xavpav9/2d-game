@@ -4,9 +4,9 @@ TICKRATE = 30
 
 """
 TODO
-    - Add player icons perhaps, instead of solid colours.
-    - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Will have to preconfigure.
-    - Add arrow key and controller support.
+    - Add player icons perhaps. Make an arrow system on the menu page to cycles between characters (each has an id).
+    - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Will have to preconfigure controller.
+    - Add controller support.
 """
 
 class Game:
@@ -95,14 +95,13 @@ class Game:
                         if otherPlayer["username"] == username:
                             otherPlayer["velocity"] = newVelocity
                 case "s":
-                    if player["cooldown"] <= 0:
+                    if player["cooldown"] <= 0 and player["tagger"]:
                         player["cooldown"] = self.tickRate
                         shootingAngle = json.loads(data)[0]
                         size = [dimension * 1.1 for dimension in self.serverData["player"]["defaultSize"]]
-                        if player["tagger"] == True:
-                            player["shots"].append({"size": size,
-                                                    "angle": shootingAngle,
-                                                    "time": self.tickRate / 7})
+                        player["shots"].append({"size": size,
+                                                "angle": shootingAngle,
+                                                "time": self.tickRate / 7})
 
         except Exception as e:
             print(e)

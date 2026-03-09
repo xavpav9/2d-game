@@ -95,6 +95,25 @@ def displayFeature(screen, featureInfo, featureIcons, offset):
     scaledIcon = pygame.transform.scale(icon, (width, height))
     screen.blit(scaledIcon, (featureX, featureY))
 
+def calculateAngle(x, y):
+    if x == 0:
+        if y > 0: angle = 0
+        else: angle = math.pi
+    elif y == 0:
+        if x > 0: angle = math.pi / 2
+        else: angle = 3 * math.pi / 2
+    else:
+        angle = math.atan(abs(y / x))
+        if x > 0 and y > 0:
+            angle = math.pi / 2 - angle
+        elif x > 0 and y < 0:
+            angle += math.pi / 2
+        elif x < 0 and y < 0:
+            angle = 3 * math.pi / 2 - angle
+        elif x < 0 and y > 0:
+            angle += 3 * math.pi / 2
+    return angle
+
 def render(client, playerData, serverData, clientData):
     W, H = 800, 600
     WHITE, BLACK, RED, GREEN, BLUE = (255,255,255), (0,0,0), (255,0,0), (0,255,0), (0,0,255)
@@ -158,16 +177,16 @@ def render(client, playerData, serverData, clientData):
 
                 elif menuWait[0] == -1:
                     newData = False
-                    if evt.key == pygame.K_a:
+                    if evt.key == pygame.K_a or evt.key == pygame.K_LEFT:
                         newData = True
                         velocity[0] = -1
-                    elif evt.key == pygame.K_d:
+                    elif evt.key == pygame.K_d or evt.key == pygame.K_RIGHT:
                         newData = True
                         velocity[0] = 1
-                    elif evt.key == pygame.K_w:
+                    elif evt.key == pygame.K_w or evt.key == pygame.K_UP:
                         newData = True
                         velocity[1] = -1
-                    elif evt.key == pygame.K_s:
+                    elif evt.key == pygame.K_s or evt.key == pygame.K_DOWN:
                         newData = True
                         velocity[1] = 1
                     elif evt.key == pygame.K_ESCAPE: # Return to menu when Esc is pressed in game
@@ -175,6 +194,13 @@ def render(client, playerData, serverData, clientData):
                         clientData["inMenu"] = True
                         bottomText = font.render("Disconnected from server.", True, RED)
                         menuWait = [0, False]
+                    elif evt.key == pygame.K_SPACE:
+                        x = velocity[0]
+                        y = -velocity[1]
+
+                        angle = calculateAngle(x, y)
+
+                        client.sendData("s" + json.dumps([angle]))
 
                     if newData:
                         client.sendData("v" + json.dumps(velocity))
@@ -186,16 +212,16 @@ def render(client, playerData, serverData, clientData):
                     pass
                 else:
                     newData = False
-                    if evt.key == pygame.K_a and velocity[0] != 1:
+                    if (evt.key == pygame.K_a or evt.key == pygame.K_LEFT) and velocity[0] != 1:
                         newData = True
                         velocity[0] = 0
-                    elif evt.key == pygame.K_d and velocity[0] != -1:
+                    elif (evt.key == pygame.K_d or evt.key == pygame.K_RIGHT) and velocity[0] != -1:
                         newData = True
                         velocity[0] = 0
-                    elif evt.key == pygame.K_w and velocity[1] != 1:
+                    elif (evt.key == pygame.K_w or evt.key == pygame.K_UP) and velocity[1] != 1:
                         newData = True
                         velocity[1] = 0
-                    elif evt.key == pygame.K_s and velocity[1] != -1:
+                    elif (evt.key == pygame.K_s or evt.key == pygame.K_DOWN) and velocity[1] != -1:
                         newData = True
                         velocity[1] = 0
 
@@ -207,23 +233,7 @@ def render(client, playerData, serverData, clientData):
                 if not clientData["inMenu"]:
                     x = clickPos[0] - screenSize[0] / 2
                     y = screenSize[1] / 2 - clickPos[1]
-
-                    if x == 0:
-                        if y > 0: angle = 0
-                        else: angle = math.pi / 2
-                    elif y == 0:
-                        if x > 0: angle = math.pi / 4
-                        else: angle = 3 * math.pi / 4
-                    else:
-                        angle = math.atan(abs(y / x))
-                        if x > 0 and y > 0:
-                            angle = math.pi / 2 - angle
-                        elif x > 0 and y < 0:
-                            angle += math.pi / 2
-                        elif x < 0 and y < 0:
-                            angle = 3 * math.pi / 2 - angle
-                        elif x < 0 and y > 0:
-                            angle += 3 * math.pi / 2
+                    angle = calculateAngle(x, y)
 
                     client.sendData("s" + json.dumps([angle]))
 
