@@ -38,7 +38,8 @@ serverData = {}
 clientData = {"inMenu": True, "running": True, "problem": "", "alert": ""}
 client = Client(ip, port, f"Player_{str(random.randint(0, 999)).zfill(3)}")
 
-tDisplay = Thread(target=display.render, args=[client, playerData, serverData, clientData])
+renderer = display.Renderer(client, playerData, serverData, clientData)
+tDisplay = Thread(target=renderer.render, args=[])
 tDisplay.start()
 
 while True:
