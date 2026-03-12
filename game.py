@@ -4,6 +4,7 @@ TICKRATE = 30
 
 """
 TODO
+    - Add different maps.
     - Add player icons perhaps. Make an arrow system on the menu page to cycles between characters (each has an id).
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Will have to preconfigure controller.
     - Add controller support.
@@ -55,7 +56,8 @@ class Game:
                                 "hidden": False,
                                 "tagger": tagger,
                                 "cooldown": 0,
-                                "shots": []})
+                                "shots": [],
+                                "iconNumber": 0})
     
     def removePlayer(self, index):
         replace = False

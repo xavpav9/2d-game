@@ -23,14 +23,13 @@ class Renderer:
         self.validUsernameCharacters = "abcdefghijklmnopqrstuvwxyz1234567890_- "
         self.featureIcons = {"noTexture": pygame.image.load("res/noTexture.png"), "rock": pygame.image.load("res/features/rock.png"), "bush": pygame.image.load("res/features/bush.png")}
 
-        """to-do
         self.characterIcons = [{"icon": pygame.image.load("res/characters/guard.png"), "name": "Guard"}]
         self.currentCharacterIcon = 0
-        """
+
         self.leaveBtn = pygame.transform.scale(pygame.image.load("res/buttons/leave.svg"), (30, 40))
 
     def getPlayerDisplayInfo(self, currentUsername):
-        # playerInfo = [x, y, colour, size, hiddenUsername] size=width,height
+        # playerInfo = [x, y, colour, size, hiddenUsername?, iconNumber] size=width,height
         usernamePositions = []
         playerPositions = []
 
@@ -46,7 +45,7 @@ class Renderer:
             yUsername = yPos - 10 - renderedUsername.get_size()[1]
 
             usernameInfo = [xUsername, yUsername, renderedUsername]
-            playerInfo = [xPos, yPos, player["colour"], (width, height), player["hidden"], shots]
+            playerInfo = [xPos, yPos, player["colour"], (width, height), player["hidden"], shots, int(player["iconNumber"])]
 
             if currentUsername == username:
                 currentPlayerInfo = playerInfo
@@ -73,7 +72,7 @@ class Renderer:
 
 
     def displayPlayer(self, playerInfo, usernameInfo, offset):
-        # playerInfo = [x, y, colour, size, hiddenUsername, shots] size=width,height, shots={angle, size}
+        # playerInfo = [x, y, colour, size, hiddenUsername, shots, iconNumber] size=width,height, shots={angle, size}
         playerWidth, playerHeight = playerInfo[3]
         playerX = playerInfo[0] - offset[0] + self.screen.get_size()[0] / 2
         playerY = playerInfo[1] - offset[1] + self.screen.get_size()[1] / 2
@@ -110,7 +109,11 @@ class Renderer:
             usernameY = usernameInfo[1] - offset[1] + self.screen.get_size()[1] / 2
             self.screen.blit(usernameInfo[2], (usernameX, usernameY))
 
-        pygame.draw.rect(self.screen, playerInfo[2], (playerX, playerY, playerWidth, playerHeight))
+        if 0 <= playerInfo[6] < len(self.characterIcons):
+            icon = pygame.transform.scale(self.characterIcons[playerInfo[6]]["icon"], (playerWidth, playerHeight))
+            self.screen.blit(icon, (playerX, playerY))
+        else:
+            pygame.draw.rect(self.screen, playerInfo[2], (playerX, playerY, playerWidth, playerHeight))
 
     def displayFeature(self, featureInfo, offset):
         # featureInfo = [x, y, size, name] size=width,height
@@ -161,18 +164,13 @@ class Renderer:
         """ to-do
         # Display character image carousel
 
-        characterImage = pygame.transform.scale(self.characterIcons[self.currentCharacterIcon]["icon"], (characterWidth, characterHeight))
+        characterImage = pygame.transform.scale(self.characterIcons[self.currentCharacterIcon]["icon"], (self.characterWidth, self.characterHeight))
         characterText = self.font.render(self.characterIcons[self.currentCharacterIcon]["name"], True, BLACK)
 
-        characterLeftArrowX, characterLeftArrowY = (width/2 - characterImage.get_size()[0] - 10 - leftArrow.get_size()[0]/2, 2*height/5 + characterText.get_size()[1])
-        characterRightArrowX, characterRightArrowY = (width/2 + characterImage.get_size()[0] + 10 + rightArrow.get_size()[0]/2, 2*height/5 + characterText.get_size()[1])
+        characterLeftArrowX, characterLeftArrowY = (width/2 - characterImage.get_size()[0] - 10 - self.leftArrow.get_size()[0]/2, 2*height/5 + characterText.get_size()[1])
+        characterRightArrowX, characterRightArrowY = (width/2 + characterImage.get_size()[0] + 10 + self.rightArrow.get_size()[0]/2, 2*height/5 + characterText.get_size()[1])
         characterTextX, characterTextY = (width/2 - characterText.get_size()[0]/2, 2*height/5)
-        characterImageX, characterImageY = (width/2 - characterImage.get_size[0]/2, 2*height/5 + characterText.get_size()[1])
-
-        self.screen.blit(characterText, (characterTextX, characterTextY)
-        self.screen.blit(characterImage, (characterImageX, characterImageY)
-        self.screen.blit(characterLeftArrow, (characterLeftArrowX, characterLeftArrowY)
-        self.screen.blit(characterRightArrow, (characterRightArrowX, characterRightArrowY)
+        characterImageX, characterImageY = (width/2 - characterImage.get_size()[0]/2, 2*height/5 + characterText.get_size()[1])
         """
 
         return {
