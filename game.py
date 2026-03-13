@@ -4,13 +4,14 @@ TICKRATE = 30
 
 """
 TODO
-    - Make runners slightly faster than the tagger.
+    - Show a display of what collectibles the user has on the side of the screen.
     - Add different maps.
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Might have to preconfigure controller.
     - Add controller support.
     - Maybe add animations for clicking buttons.
     - Add sound effects.
-    - Add powerups - speed boost.
+    - Allow user setting up server to customise a few variables - e.g. how many taggers there are.
+    - Perhaps add a lobby to vote on what will happen in the next round.
 """
 
 class Game:
@@ -60,7 +61,8 @@ class Game:
                                 "tagger": tagger,
                                 "cooldown": 0,
                                 "shots": [],
-                                "iconNumber": 0})
+                                "iconNumber": 0,
+                                "collectibles": []})
     
     def removePlayer(self, index):
         replace = False
@@ -129,8 +131,10 @@ class Game:
 
     def fixCollisions(self, player, otherPlayers, dx, dy, collides=True):
         playerWidth, playerHeight = player["size"]
+        collected = []
         hidden = False
-        for otherPlayer in otherPlayers:
+        for i in range(len(otherPlayers)):
+            otherPlayer = otherPlayers[i]
             if otherPlayer != player:
                 otherPlayerWidth, otherPlayerHeight = otherPlayer["size"]
                 minimumXGap = (playerWidth + otherPlayerWidth) / 2
@@ -150,12 +154,14 @@ class Game:
                             if dx != 0: player["position"][0] += (minimumXGap - abs(playerX - otherPlayerX)) * (-dx / abs(dx))
                             if dy != 0: player["position"][1] += (minimumYGap - abs(playerY - otherPlayerY)) * (-dy / abs(dy))
                     else:
-                        # Hides username if you are behind a non-collidable object.
-                        if otherPlayerY + otherPlayerHeight / 2 > playerY + playerHeight / 2: # otherPlayerY is from the centre, so add half of the height to get the bottom.
-                            hidden = True
-                            if not collides: return True # if the player cannot collide, then this function was just run to see if they were hidden, so it can be exited.
+                        if otherPlayer["type"] == "collectible":
+                            collected.append(i)
+                        elif otherPlayerY + otherPlayerHeight / 2 > playerY + playerHeight / 2: # otherPlayerY and playerY are from the centre, so add half of their heights to get the bottoms.
+                            hidden = True # Hides username if you are behind a non-collidable, non-collectible object.
+                            #NEED TO REMOVE COMMENT:  if not collides: return True # if the player cannot collide, then this function was just run to see if they were hidden, so it can be exited.
 
-        return hidden
+
+        return hidden, collected
 
 
     def tick(self, running):
@@ -166,22 +172,31 @@ class Game:
         while running[0]:
             startTime = time.time()
             mapSize = self.serverData["map"]
+            serverDataUpdated = False
             
             for player in self.playerData:
                 # Move player based on their velocity.
                 playerWidth, playerHeight = player["size"]
                 velocity = player["velocity"]
+
+                currentSpeed = speed
+                if player["tagger"]: currentSpeed *= 0.95
+                for collectible in player["collectibles"]:
+                    if collectible["name"] == "speedUp":
+                        if player["tagger"]: currentSpeed *= ((collectible["multiplier"])**(1/2))
+                        else: currentSpeed *= collectible["multiplier"]
+
                 dx = dy = 0
                 if velocity[0] != 0 or velocity[1] != 0:
                     if velocity[0] != 0 and velocity[1] != 0:
                         hypoteneuse = (velocity[0] ** 2 + velocity[1] ** 2) ** (1/2)
-                        ratio = speed / hypoteneuse
+                        ratio = currentSpeed / hypoteneuse
                         dx = velocity[0] * ratio
                         dy = velocity[1] * ratio
                     elif velocity[0] != 0:
-                        dx = velocity[0] * speed
+                        dx = velocity[0] * currentSpeed
                     else:
-                        dy = velocity[1] * speed
+                        dy = velocity[1] * currentSpeed
 
                     player["position"][0] += dx
                     player["position"][1] += dy
@@ -197,11 +212,18 @@ class Game:
                         hidden = self.fixCollisions(player, self.playerData, dx, dy)
 
                         # Handle feature collisions.
-                        hidden = self.fixCollisions(player, self.serverData["features"], dx, dy) or hidden
+                        hidden, collectibles = self.fixCollisions(player, self.serverData["features"], dx, dy) or hidden
                     else:
-                        hidden = self.fixCollisions(player, self.serverData["features"], dx, dy, False)
+                        hidden, collectibles = self.fixCollisions(player, self.serverData["features"], dx, dy, False)
 
                     player["hidden"] = hidden
+
+                    for i in range(len(collectibles)):
+                        serverDataUpdated = True
+                        collectibleIndex = collectibles[i] - i # will remove one item on each loop, so -i to keep it in the correct place
+                        player["collectibles"].append(self.serverData["features"][collectibleIndex]) # These will be items or powerups ( which will have a inbuilt timer
+                        self.serverData["features"].pop(collectibleIndex)
+
 
                 
                 # Check if they have been hit.
@@ -244,6 +266,16 @@ class Game:
                 if player["cooldown"] > 0: player["cooldown"] -= 1
                 else: player["cooldown"] = 0
 
+                i = 0
+                while i < len(player["collectibles"]):
+                    collectible = player["collectibles"][i]
+                    if collectible["time"] > 0:
+                        collectible["time"] -= 1
+                        if collectible["time"] <= 0:
+                            player["collectibles"].pop(i)
+                            i -= 1
+                    i += 1
+
             # Reduce existence time for shot
             for player in self.playerData:
                 i = 0
@@ -255,6 +287,8 @@ class Game:
                     else: i += 1
 
             self.server.distributeData("p" + json.dumps(self.playerData), [])
+
+            if serverDataUpdated: self.server.distributeData("s" + json.dumps(self.serverData), [])
             endTime = time.time()
             totalTime = (endTime-startTime)
             if totalTime < frameTime:

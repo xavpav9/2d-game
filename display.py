@@ -21,7 +21,7 @@ class Renderer:
         self.alertWait = [-1] # for game alerts. index 0: current frame since started
         self.ctrl = False # whether ctrl is being held
         self.validUsernameCharacters = "abcdefghijklmnopqrstuvwxyz1234567890_- "
-        self.featureIcons = {"noTexture": pygame.image.load("res/noTexture.png"), "rock": pygame.image.load("res/features/rock.png"), "bush": pygame.image.load("res/features/bush.png")}
+        self.featureIcons = {"noTexture": pygame.image.load("res/noTexture.png"), "rock": pygame.image.load("res/features/rock.png"), "bush": pygame.image.load("res/features/bush.png"), "speedUp": pygame.image.load("res/features/speedUp.png")}
 
         self.characterIcons = [{"icon": "", "name": "Random Colour"}, {"icon": pygame.image.load("res/characters/guard.png"), "name": "Guard"}, {"icon": pygame.image.load("res/characters/rainbow.png"), "name": "Rainbow"}]
         self.clientData["iconNumber"] = 0

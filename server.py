@@ -3,9 +3,9 @@ from game import Game
 from threading import Thread
 
 ip = "0.0.0.0"
-port = 2000
+port = 2001
 
-TICKRATE = 30
+TICKRATE = 30 # 1 Tickrate = 1 Second
 
 class Server:
     def __init__(self, ip, port, headersize, gameHandler):
@@ -128,16 +128,30 @@ if __name__ == "__main__":
         rockHeight = rockWidth + random.randint(-2, 2)
         bushWidth = random.randint(80, 160)
         bushHeight = bushWidth // 2 + random.randint(-2, 2)
+        speedUpWidth = 40
+        speedUpHeight = 40
 
         features.append({"name": "rock",
                          "position": [random.randint(0, mapSize[0] - rockWidth), i * 100 + random.randint(-80, 80)],
                          "size": [rockWidth, rockHeight],
-                         "collides": True})
+                         "collides": True,
+                         "type": "object"})
 
         features.append({"name": "bush",
                          "position": [random.randint(0, mapSize[0] - bushWidth), i * 100 + random.randint(-80, 80)],
                          "size": [bushWidth, bushHeight],
-                         "collides": False})
+                         "collides": False,
+                         "type": "object"})
+
+        if random.randint(10, 25) // 10 == 1:
+            features.append({"name": "speedUp",
+                             "position": [random.randint(0, mapSize[0] - speedUpWidth), i * 100 + random.randint(-80, 80)],
+                             "size": [speedUpWidth, speedUpHeight],
+                             "collides": False,
+                             "type": "collectible",
+                             "time": TICKRATE * 3,
+                             "multiplier": random.randint(11, 14) / 10})
+
 
 
     gameHandler = Game([], {"map": mapSize,
