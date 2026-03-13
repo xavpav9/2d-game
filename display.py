@@ -464,6 +464,27 @@ class Renderer:
                 self.screen.blit(roleText, (self.screenSize[0] - self.uiPadding[0] - roleText.get_size()[0], self.screenSize[1] - self.uiPadding[1] - roleText.get_size()[1]))
 
 
+                # Display Player Collectibles
+                totalCollectibles = len(player["collectibles"])
+                if totalCollectibles > 0:
+                    collectibleHeight = 80
+                    collectibleWidth = 80
+                    topPadding = 100
+                    leftPadding = 0
+                    collectiblePadding = 10
+                    fontHeight = self.font.render("A", True, BLACK).get_size()[1]
+
+                    for collectible in player["collectibles"]:
+                        self.screen.blit(pygame.transform.scale(self.featureIcons[collectible["name"]], (collectibleWidth - fontHeight, collectibleHeight - fontHeight)), (self.uiPadding[0] + leftPadding + fontHeight/2, topPadding))
+                        text = self.font.render(f"{collectible['time'] / self.serverData['tickRate']:.2f}", True, BLACK)
+                        self.screen.blit(text, (self.uiPadding[0] + leftPadding + collectibleWidth/2 - text.get_size()[0]/2, topPadding + collectibleHeight - fontHeight))
+
+                        topPadding += collectibleHeight + collectiblePadding
+                        if topPadding + collectibleHeight > self.screenSize[1] - 50: # 50 is arbitary
+                            topPadding = 100
+                            leftPadding += collectibleWidth + collectiblePadding
+
+
 
                 # Manage alert text
                 if self.clientData["alert"] != "":

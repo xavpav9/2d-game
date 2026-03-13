@@ -4,7 +4,6 @@ TICKRATE = 30
 
 """
 TODO
-    - Show a display of what collectibles the user has on the side of the screen.
     - Add different maps.
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Might have to preconfigure controller.
     - Add controller support.
@@ -286,9 +285,19 @@ class Game:
                         player["shots"].pop(i)
                     else: i += 1
 
-            self.server.distributeData("p" + json.dumps(self.playerData), [])
+            if random.randint(0, TICKRATE * 10) == 0: 
+                serverDataUpdated = True
+                self.serverData["features"].append({"name": "speedUp",
+                                "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
+                                 "size": [40, 40],
+                                 "collides": False,
+                                 "type": "collectible",
+                                 "time": TICKRATE * 3,
+                                 "multiplier": random.randint(13, 17) / 10})
 
+            self.server.distributeData("p" + json.dumps(self.playerData), [])
             if serverDataUpdated: self.server.distributeData("s" + json.dumps(self.serverData), [])
+
             endTime = time.time()
             totalTime = (endTime-startTime)
             if totalTime < frameTime:

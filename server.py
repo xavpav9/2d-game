@@ -3,7 +3,7 @@ from game import Game
 from threading import Thread
 
 ip = "0.0.0.0"
-port = 2001
+port = 2000
 
 TICKRATE = 30 # 1 Tickrate = 1 Second
 
@@ -123,13 +123,13 @@ if __name__ == "__main__":
     features = []
     mapSize = [1000, 1200]
     maxFeatureHeight = 200
+    speedUpWidth = 40
+    speedUpHeight = 40
     for i in range(2, (mapSize[1] - maxFeatureHeight) // 100 + 1):
         rockWidth = random.randint(20, 40)
         rockHeight = rockWidth + random.randint(-2, 2)
         bushWidth = random.randint(80, 160)
         bushHeight = bushWidth // 2 + random.randint(-2, 2)
-        speedUpWidth = 40
-        speedUpHeight = 40
 
         features.append({"name": "rock",
                          "position": [random.randint(0, mapSize[0] - rockWidth), i * 100 + random.randint(-80, 80)],
@@ -143,16 +143,14 @@ if __name__ == "__main__":
                          "collides": False,
                          "type": "object"})
 
-        if random.randint(10, 25) // 10 == 1:
+        if random.randint(1, 5) == 1:
             features.append({"name": "speedUp",
                              "position": [random.randint(0, mapSize[0] - speedUpWidth), i * 100 + random.randint(-80, 80)],
                              "size": [speedUpWidth, speedUpHeight],
                              "collides": False,
                              "type": "collectible",
                              "time": TICKRATE * 3,
-                             "multiplier": random.randint(11, 14) / 10})
-
-
+                             "multiplier": random.randint(12, 15) / 10})
 
     gameHandler = Game([], {"map": mapSize,
                             "player": {"defaultSize": [30, 30]},
