@@ -45,7 +45,7 @@ class Renderer:
             yUsername = yPos - 10 - renderedUsername.get_size()[1]
 
             usernameInfo = [xUsername, yUsername, renderedUsername]
-            playerInfo = [xPos, yPos, player["colour"], (width, height), player["hidden"], shots, int(player["iconNumber"])]
+            playerInfo = [xPos, yPos, player["colour"], (width, height), player["hidden"], shots, int(player["iconNumber"]), player["tagger"]]
 
             if currentUsername == username:
                 currentPlayerInfo = playerInfo
@@ -72,7 +72,7 @@ class Renderer:
 
 
     def displayPlayer(self, playerInfo, usernameInfo, offset):
-        # playerInfo = [x, y, colour, size, hiddenUsername, shots, iconNumber] size=width,height, shots={angle, size}
+        # playerInfo = [x, y, colour, size, hiddenUsername, shots, iconNumber, tagger] size=width,height, shots={angle, size}
         playerWidth, playerHeight = playerInfo[3]
         playerX = playerInfo[0] - offset[0] + self.screen.get_size()[0] / 2
         playerY = playerInfo[1] - offset[1] + self.screen.get_size()[1] / 2
@@ -114,6 +114,11 @@ class Renderer:
             self.screen.blit(icon, (playerX, playerY))
         else:
             pygame.draw.rect(self.screen, playerInfo[2], (playerX, playerY, playerWidth, playerHeight))
+
+        if playerInfo[7]: # blue/red outlines
+            pygame.draw.rect(self.screen, RED, (playerX, playerY, playerWidth, playerHeight), 1)
+        else:
+            pygame.draw.rect(self.screen, BLUE, (playerX, playerY, playerWidth, playerHeight), 1)
 
     def displayFeature(self, featureInfo, offset):
         # featureInfo = [x, y, size, name] size=width,height

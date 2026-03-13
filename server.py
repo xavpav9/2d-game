@@ -150,7 +150,7 @@ if __name__ == "__main__":
                              "collides": False,
                              "type": "collectible",
                              "time": TICKRATE * 3,
-                             "multiplier": random.randint(12, 15) / 10})
+                             "multiplier": random.randint(11, 14) / 10})
 
     gameHandler = Game([], {"map": {"size": mapSize, "innerColour": (200,255,200), "outerColour": (20,20,255)},
                             "player": {"defaultSize": [30, 30]},

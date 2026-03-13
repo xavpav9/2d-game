@@ -295,7 +295,7 @@ class Game:
                                      "collides": False,
                                      "type": "collectible",
                                      "time": TICKRATE * 3,
-                                     "multiplier": random.randint(13, 17) / 10})
+                                     "multiplier": random.randint(11, 14) / 10})
 
                 self.server.distributeData("p" + json.dumps(self.playerData), [])
                 if serverDataUpdated: self.server.distributeData("s" + json.dumps(self.serverData), [])
