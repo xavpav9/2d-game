@@ -5,6 +5,7 @@ TICKRATE = 30
 """
 TODO
     - Add different maps.
+    - Add a block that can only be collided with at the base.
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Might have to preconfigure controller.
     - Add controller support.
     - Maybe add animations for clicking buttons.
@@ -28,7 +29,7 @@ class Game:
         playerWidth, playerHeight = playerSize
         while colliding:
             valid = True
-            position = [random.randint(0, self.serverData["map"][0] - playerWidth), random.randint(0, self.serverData["map"][1] - playerHeight)]
+            position = [random.randint(0, self.serverData["map"]["size"][0] - playerWidth), random.randint(0, self.serverData["map"]["size"][1] - playerHeight)]
             playerObject = {"position": position, "size": playerSize}
 
             for otherPlayer in self.playerData + self.serverData["features"]:
@@ -170,133 +171,134 @@ class Game:
 
         while running[0]:
             startTime = time.time()
-            mapSize = self.serverData["map"]
-            serverDataUpdated = False
-            
-            for player in self.playerData:
-                # Move player based on their velocity.
-                playerWidth, playerHeight = player["size"]
-                velocity = player["velocity"]
-
-                currentSpeed = speed
-                if player["tagger"]: currentSpeed *= 0.95
-                for collectible in player["collectibles"]:
-                    if collectible["name"] == "speedUp":
-                        if player["tagger"]: currentSpeed *= ((collectible["multiplier"])**(1/2))
-                        else: currentSpeed *= collectible["multiplier"]
-
-                dx = dy = 0
-                if velocity[0] != 0 or velocity[1] != 0:
-                    if velocity[0] != 0 and velocity[1] != 0:
-                        hypoteneuse = (velocity[0] ** 2 + velocity[1] ** 2) ** (1/2)
-                        ratio = currentSpeed / hypoteneuse
-                        dx = velocity[0] * ratio
-                        dy = velocity[1] * ratio
-                    elif velocity[0] != 0:
-                        dx = velocity[0] * currentSpeed
-                    else:
-                        dy = velocity[1] * currentSpeed
-
-                    player["position"][0] += dx
-                    player["position"][1] += dy
-                    # Map border collisions.
-                    if player["position"][0] < 0: player["position"][0] = 0
-                    elif player["position"][0] > mapSize[0] - playerWidth: player["position"][0] = mapSize[0] - playerWidth
-
-                    if player["position"][1] < 0: player["position"][1] = 0
-                    elif player["position"][1] > mapSize[1] - playerHeight: player["position"][1] = mapSize[1] - playerHeight
-
-                    if player["collides"]:
-                        # Handle other player collisions.
-                        hidden = self.fixCollisions(player, self.playerData, dx, dy)
-
-                        # Handle feature collisions.
-                        hidden, collectibles = self.fixCollisions(player, self.serverData["features"], dx, dy) or hidden
-                    else:
-                        hidden, collectibles = self.fixCollisions(player, self.serverData["features"], dx, dy, False)
-
-                    player["hidden"] = hidden
-
-                    for i in range(len(collectibles)):
-                        serverDataUpdated = True
-                        collectibleIndex = collectibles[i] - i # will remove one item on each loop, so -i to keep it in the correct place
-                        player["collectibles"].append(self.serverData["features"][collectibleIndex]) # These will be items or powerups ( which will have a inbuilt timer
-                        self.serverData["features"].pop(collectibleIndex)
-
-
+            if len(self.playerData) != 0:
+                mapSize = self.serverData["map"]["size"]
+                serverDataUpdated = False
                 
-                # Check if they have been hit.
-                for otherPlayer in self.playerData:
-                    if otherPlayer["username"] != player["username"]:
-                        for shot in otherPlayer["shots"]:
-                            # {"username", "playerSize", "position", "angle", "time", "size"}
-                            quadrant = abs((shot["angle"] + math.pi / 8) % (2 * math.pi)) // (math.pi / 4)
-                            position = [otherPlayer["position"][0] + otherPlayer["size"][0] / 2, otherPlayer["position"][1] + otherPlayer["size"][1] / 2]
-                            # position is currently at the centre of the otherPlayer, pointing down right
-                            match quadrant:
-                                case 0: # above otherPlayer
-                                    position[0] -= shot["size"][0] / 2
-                                    position[1] -= shot["size"][1]
-                                case 1: # top right
-                                    position[1] -= shot["size"][1]
-                                case 2: # right
-                                    position[1] -= shot["size"][1] / 2
-                                # case 3: bottom right, already in correct position
-                                case 4: # bottom
-                                    position[0] -= shot["size"][0] / 2
-                                case 5: # bottom left
-                                    position[0] -= shot["size"][0]
-                                case 6: # left
-                                    position[0] -= shot["size"][0]
-                                    position[1] -= shot["size"][1] / 2
-                                case 7: # top left
-                                    position[0] -= shot["size"][0]
-                                    position[1] -= shot["size"][1]
-                                    
-                            shotObject = {"position": position, "size": shot["size"]}
-                            colliding = self.checkCollisions(player, shotObject)
+                for player in self.playerData:
+                    # Move player based on their velocity.
+                    playerWidth, playerHeight = player["size"]
+                    velocity = player["velocity"]
 
-                            if colliding and not player["tagger"]:
-                                otherPlayer["tagger"] = False
-                                otherPlayer["cooldown"] = 0
-                                player["tagger"] = True
-                                if shot["time"] >= 2: shot["time"] = 2
+                    currentSpeed = speed
+                    if player["tagger"]: currentSpeed *= 0.95
+                    for collectible in player["collectibles"]:
+                        if collectible["name"] == "speedUp":
+                            if player["tagger"]: currentSpeed *= ((collectible["multiplier"])**(1/2))
+                            else: currentSpeed *= collectible["multiplier"]
 
-                if player["cooldown"] > 0: player["cooldown"] -= 1
-                else: player["cooldown"] = 0
+                    dx = dy = 0
+                    if velocity[0] != 0 or velocity[1] != 0:
+                        if velocity[0] != 0 and velocity[1] != 0:
+                            hypoteneuse = (velocity[0] ** 2 + velocity[1] ** 2) ** (1/2)
+                            ratio = currentSpeed / hypoteneuse
+                            dx = velocity[0] * ratio
+                            dy = velocity[1] * ratio
+                        elif velocity[0] != 0:
+                            dx = velocity[0] * currentSpeed
+                        else:
+                            dy = velocity[1] * currentSpeed
 
-                i = 0
-                while i < len(player["collectibles"]):
-                    collectible = player["collectibles"][i]
-                    if collectible["time"] > 0:
-                        collectible["time"] -= 1
-                        if collectible["time"] <= 0:
-                            player["collectibles"].pop(i)
-                            i -= 1
-                    i += 1
+                        player["position"][0] += dx
+                        player["position"][1] += dy
+                        # Map border collisions.
+                        if player["position"][0] < 0: player["position"][0] = 0
+                        elif player["position"][0] > mapSize[0] - playerWidth: player["position"][0] = mapSize[0] - playerWidth
 
-            # Reduce existence time for shot
-            for player in self.playerData:
-                i = 0
-                while i < len(player["shots"]):
-                    shot = player["shots"][i]
-                    shot["time"] -= 1
-                    if shot["time"] <= 0:
-                        player["shots"].pop(i)
-                    else: i += 1
+                        if player["position"][1] < 0: player["position"][1] = 0
+                        elif player["position"][1] > mapSize[1] - playerHeight: player["position"][1] = mapSize[1] - playerHeight
 
-            if random.randint(0, TICKRATE * 10) == 0: 
-                serverDataUpdated = True
-                self.serverData["features"].append({"name": "speedUp",
-                                "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
-                                 "size": [40, 40],
-                                 "collides": False,
-                                 "type": "collectible",
-                                 "time": TICKRATE * 3,
-                                 "multiplier": random.randint(13, 17) / 10})
+                        if player["collides"]:
+                            # Handle other player collisions.
+                            hidden = self.fixCollisions(player, self.playerData, dx, dy)
 
-            self.server.distributeData("p" + json.dumps(self.playerData), [])
-            if serverDataUpdated: self.server.distributeData("s" + json.dumps(self.serverData), [])
+                            # Handle feature collisions.
+                            hidden, collectibles = self.fixCollisions(player, self.serverData["features"], dx, dy) or hidden
+                        else:
+                            hidden, collectibles = self.fixCollisions(player, self.serverData["features"], dx, dy, False)
+
+                        player["hidden"] = hidden
+
+                        for i in range(len(collectibles)):
+                            serverDataUpdated = True
+                            collectibleIndex = collectibles[i] - i # will remove one item on each loop, so -i to keep it in the correct place
+                            player["collectibles"].append(self.serverData["features"][collectibleIndex]) # These will be items or powerups ( which will have a inbuilt timer
+                            self.serverData["features"].pop(collectibleIndex)
+
+
+                    
+                    # Check if they have been hit.
+                    for otherPlayer in self.playerData:
+                        if otherPlayer["username"] != player["username"]:
+                            for shot in otherPlayer["shots"]:
+                                # {"username", "playerSize", "position", "angle", "time", "size"}
+                                quadrant = abs((shot["angle"] + math.pi / 8) % (2 * math.pi)) // (math.pi / 4)
+                                position = [otherPlayer["position"][0] + otherPlayer["size"][0] / 2, otherPlayer["position"][1] + otherPlayer["size"][1] / 2]
+                                # position is currently at the centre of the otherPlayer, pointing down right
+                                match quadrant:
+                                    case 0: # above otherPlayer
+                                        position[0] -= shot["size"][0] / 2
+                                        position[1] -= shot["size"][1]
+                                    case 1: # top right
+                                        position[1] -= shot["size"][1]
+                                    case 2: # right
+                                        position[1] -= shot["size"][1] / 2
+                                    # case 3: bottom right, already in correct position
+                                    case 4: # bottom
+                                        position[0] -= shot["size"][0] / 2
+                                    case 5: # bottom left
+                                        position[0] -= shot["size"][0]
+                                    case 6: # left
+                                        position[0] -= shot["size"][0]
+                                        position[1] -= shot["size"][1] / 2
+                                    case 7: # top left
+                                        position[0] -= shot["size"][0]
+                                        position[1] -= shot["size"][1]
+                                        
+                                shotObject = {"position": position, "size": shot["size"]}
+                                colliding = self.checkCollisions(player, shotObject)
+
+                                if colliding and not player["tagger"]:
+                                    otherPlayer["tagger"] = False
+                                    otherPlayer["cooldown"] = 0
+                                    player["tagger"] = True
+                                    if shot["time"] >= 2: shot["time"] = 2
+
+                    if player["cooldown"] > 0: player["cooldown"] -= 1
+                    else: player["cooldown"] = 0
+
+                    i = 0
+                    while i < len(player["collectibles"]):
+                        collectible = player["collectibles"][i]
+                        if collectible["time"] > 0:
+                            collectible["time"] -= 1
+                            if collectible["time"] <= 0:
+                                player["collectibles"].pop(i)
+                                i -= 1
+                        i += 1
+
+                # Reduce existence time for shot
+                for player in self.playerData:
+                    i = 0
+                    while i < len(player["shots"]):
+                        shot = player["shots"][i]
+                        shot["time"] -= 1
+                        if shot["time"] <= 0:
+                            player["shots"].pop(i)
+                        else: i += 1
+
+                if random.randint(0, TICKRATE * 10) == 0: 
+                    serverDataUpdated = True
+                    self.serverData["features"].append({"name": "speedUp",
+                                    "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
+                                     "size": [40, 40],
+                                     "collides": False,
+                                     "type": "collectible",
+                                     "time": TICKRATE * 3,
+                                     "multiplier": random.randint(13, 17) / 10})
+
+                self.server.distributeData("p" + json.dumps(self.playerData), [])
+                if serverDataUpdated: self.server.distributeData("s" + json.dumps(self.serverData), [])
 
             endTime = time.time()
             totalTime = (endTime-startTime)

@@ -417,9 +417,17 @@ class Renderer:
                 offset = [currentPlayerInfo[i] + currentPlayerInfo[3][i] / 2 for i in range(2)]
 
                 # Draw Map
-                mapSize = self.serverData["map"]
+                mapSize = self.serverData["map"]["size"]
                 borderWidth = 2
+                # - Map border
                 pygame.draw.rect(self.screen, BLACK, (self.screenSize[0] / 2 - offset[0] - borderWidth, self.screenSize[1] / 2 - offset[1] - borderWidth, mapSize[0] + borderWidth * 2, mapSize[1] + borderWidth * 2), borderWidth)
+                # - Map inner
+                pygame.draw.rect(self.screen, self.serverData["map"]["innerColour"], (self.screenSize[0]/2 - offset[0], self.screenSize[1]/2 - offset[1], mapSize[0], mapSize[1]))
+                # - Map outer
+                pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] - borderWidth, self.screenSize[1]/2 - offset[1] - borderWidth - 1000, mapSize[0] * 2 + 1000 , 1000)) # top
+                pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] + mapSize[0] + borderWidth, self.screenSize[1]/2 - offset[1] - borderWidth, 1000, mapSize[1] * 2 + 1000)) # right
+                pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] - 1000, self.screenSize[1]/2 - offset[1] + mapSize[1] + borderWidth, mapSize[0] * 2 + 1000, mapSize[1] + 1000)) # bottom
+                pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] - borderWidth - 1000, self.screenSize[1]/2 - offset[1] - 1000, 1000, mapSize[1]*2 + 1000)) # left
 
                 # Draw Players and Features and Shots
                 playerIncrementer = 0
