@@ -75,6 +75,7 @@ class Game:
         """
             v = velocity change
             s = tagger shoots
+            c = character change
         """
 
         try:
@@ -104,6 +105,9 @@ class Game:
                         player["shots"].append({"size": size,
                                                 "angle": shootingAngle,
                                                 "time": self.tickRate / 7})
+                case "c":
+                    player["iconNumber"] = json.loads(data)[0]
+
 
         except Exception as e:
             print(e)

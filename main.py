@@ -49,6 +49,7 @@ while True:
             break
         elif not clientData["inMenu"]:
             success = client.initialiseSock()
+            client.sendData("c" + json.dumps([clientData["iconNumber"]]))
             if success == True:
                 tHandleServer.start()
                 break

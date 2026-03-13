@@ -23,8 +23,8 @@ class Renderer:
         self.validUsernameCharacters = "abcdefghijklmnopqrstuvwxyz1234567890_- "
         self.featureIcons = {"noTexture": pygame.image.load("res/noTexture.png"), "rock": pygame.image.load("res/features/rock.png"), "bush": pygame.image.load("res/features/bush.png")}
 
-        self.characterIcons = [{"icon": pygame.image.load("res/characters/guard.png"), "name": "Guard"}]
-        self.currentCharacterIcon = 0
+        self.characterIcons = [{"icon": "", "name": "Random Colour"}, {"icon": pygame.image.load("res/characters/guard.png"), "name": "Guard"}, {"icon": pygame.image.load("res/characters/rainbow.png"), "name": "Rainbow"}]
+        self.clientData["iconNumber"] = 0
 
         self.leaveBtn = pygame.transform.scale(pygame.image.load("res/buttons/leave.svg"), (30, 40))
 
@@ -109,7 +109,7 @@ class Renderer:
             usernameY = usernameInfo[1] - offset[1] + self.screen.get_size()[1] / 2
             self.screen.blit(usernameInfo[2], (usernameX, usernameY))
 
-        if 0 <= playerInfo[6] < len(self.characterIcons):
+        if 1 <= playerInfo[6] < len(self.characterIcons):
             icon = pygame.transform.scale(self.characterIcons[playerInfo[6]]["icon"], (playerWidth, playerHeight))
             self.screen.blit(icon, (playerX, playerY))
         else:
@@ -152,32 +152,29 @@ class Renderer:
 
         # Play button
 
-        playBtnTextXY = (width/2 - self.playBtn.get_size()[0]/2, height/2)
+        playBtnTextXY = (width/2 - self.playBtn.get_size()[0]/2, 3*height/5)
         playBtnXY, playBtnSize = (playBtnTextXY[0] - self.btnPadding[0], playBtnTextXY[1] - self.btnPadding[1]), (self.playBtn.get_size()[0] + self.btnPadding[0] * 2, self.playBtn.get_size()[1] + self.btnPadding[1] * 2)
 
         # Quit button
 
-        quitBtnTextXY = (width/2 - self.quitBtn.get_size()[0]/2, 3*height/5)
+        quitBtnTextXY = (width/2 - self.quitBtn.get_size()[0]/2, 7*height/10)
         quitBtnXY, quitBtnSize = (quitBtnTextXY[0] - self.btnPadding[0], quitBtnTextXY[1] - self.btnPadding[1]), (self.quitBtn.get_size()[0] + self.btnPadding[0] * 2, self.quitBtn.get_size()[1] + self.btnPadding[1] * 2)
 
 
-        """ to-do
         # Display character image carousel
 
-        characterImage = pygame.transform.scale(self.characterIcons[self.currentCharacterIcon]["icon"], (self.characterWidth, self.characterHeight))
-        characterText = self.font.render(self.characterIcons[self.currentCharacterIcon]["name"], True, BLACK)
+        characterText = self.font.render(self.characterIcons[self.clientData["iconNumber"]]["name"], True, BLACK)
 
-        characterLeftArrowX, characterLeftArrowY = (width/2 - characterImage.get_size()[0] - 10 - self.leftArrow.get_size()[0]/2, 2*height/5 + characterText.get_size()[1])
-        characterRightArrowX, characterRightArrowY = (width/2 + characterImage.get_size()[0] + 10 + self.rightArrow.get_size()[0]/2, 2*height/5 + characterText.get_size()[1])
-        characterTextX, characterTextY = (width/2 - characterText.get_size()[0]/2, 2*height/5)
-        characterImageX, characterImageY = (width/2 - characterImage.get_size()[0]/2, 2*height/5 + characterText.get_size()[1])
-        """
+        characterLeftArrowXY = (width/2 - self.characterWidth - 10 - self.leftArrow.get_size()[0], 2*height/5 + characterText.get_size()[1])
+        characterRightArrowXY = (width/2 + self.characterWidth + 10, 2*height/5 + characterText.get_size()[1])
 
         return {
                 "playBtn": {"position": playBtnXY, "size": playBtnSize},
                 "playBtnText": {"position": playBtnTextXY},
                 "quitBtn": {"position": quitBtnXY, "size": quitBtnSize},
                 "quitBtnText": {"position": quitBtnTextXY},
+                "leftArrow": {"position": characterLeftArrowXY, "size": self.leftArrow.get_size()},
+                "rightArrow": {"position": characterRightArrowXY, "size": self.rightArrow.get_size()},
                 }
 
     def getGameButtonPositions(self):
@@ -210,7 +207,6 @@ class Renderer:
         self.playBtn = self.font.render("Play", True, BLACK)
         self.quitBtn = self.font.render("Quit", True, RED)
 
-        """to-do
         self.characterWidth, self.characterHeight = [30, 30]
         leftArrow = pygame.image.load("res/buttons/leftArrow.png")
         rightArrow = pygame.image.load("res/buttons/rightArrow.png")
@@ -219,7 +215,6 @@ class Renderer:
         leftArrowScaleRatio = self.characterHeight / rightArrow.get_size()[1]
         self.leftArrow = pygame.transform.scale(leftArrow, (leftArrow.get_size()[0] * leftArrowScaleRatio, leftArrow.get_size()[1] * leftArrowScaleRatio))
         self.rightArrow = pygame.transform.scale(rightArrow, (rightArrow.get_size()[0] * leftArrowScaleRatio, rightArrow.get_size()[1] * leftArrowScaleRatio))
-        """
 
         while self.clientData["running"]:
             self.screenSize = self.screen.get_size()
@@ -325,6 +320,11 @@ class Renderer:
 
                         elif 0 < self.clickPos[0] - buttonPositions["quitBtn"]["position"][0] < buttonPositions["quitBtn"]["size"][0] and 0 < self.clickPos[1] - buttonPositions["quitBtn"]["position"][1] < (buttonPositions["quitBtn"]["size"][1]):
                             self.clientData["running"] = False
+                        elif 0 < self.clickPos[0] - buttonPositions["leftArrow"]["position"][0] < buttonPositions["leftArrow"]["size"][0] and 0 < self.clickPos[1] - buttonPositions["leftArrow"]["position"][1] < (buttonPositions["leftArrow"]["size"][1]):
+                            self.clientData["iconNumber"] = (self.clientData["iconNumber"] - 1) % len(self.characterIcons)
+                        elif 0 < self.clickPos[0] - buttonPositions["rightArrow"]["position"][0] < buttonPositions["rightArrow"]["size"][0] and 0 < self.clickPos[1] - buttonPositions["rightArrow"]["position"][1] < (buttonPositions["rightArrow"]["size"][1]):
+                            self.clientData["iconNumber"] = (self.clientData["iconNumber"] + 1) % len(self.characterIcons)
+
 
                     else:
                         buttonPositions = self.getGameButtonPositions()
@@ -370,14 +370,22 @@ class Renderer:
                 self.screen.blit(self.quitBtn, buttonPositions["quitBtnText"]["position"])
                 pygame.draw.rect(self.screen, BLACK, buttonPositions["quitBtn"]["position"] + buttonPositions["quitBtn"]["size"], 4, 5)
 
-                """ to-do
                 # Display character image carousel
 
-                self.screen.blit(characterText, (characterTextX, characterTextY)
-                self.screen.blit(characterImage, (characterImageX, characterImageY)
-                self.screen.blit(characterLeftArrow, (characterLeftArrowX, characterLeftArrowY)
-                self.screen.blit(characterRightArrow, (characterRightArrowX, characterRightArrowY)
-                """
+                characterText = self.font.render(self.characterIcons[self.clientData["iconNumber"]]["name"], True, BLACK)
+                characterTextX, characterTextY = (width/2 - characterText.get_size()[0]/2, 2*height/5)
+                characterImageX, characterImageY = (width/2 - self.characterWidth/2, 2*height/5 + characterText.get_size()[1])
+
+                self.screen.blit(characterText, (characterTextX, characterTextY))
+                self.screen.blit(self.leftArrow, buttonPositions["leftArrow"]["position"])
+                self.screen.blit(self.rightArrow, buttonPositions["rightArrow"]["position"])
+
+                if self.clientData["iconNumber"] != 0:
+                    characterImage = pygame.transform.scale(self.characterIcons[self.clientData["iconNumber"]]["icon"], (self.characterWidth, self.characterHeight))
+                    self.screen.blit(characterImage, (characterImageX, characterImageY))
+                else:
+                    pygame.draw.rect(self.screen, RED, (characterImageX, characterImageY, self.characterWidth, self.characterHeight))
+
 
 
                 if self.menuWait[0] != -1:
