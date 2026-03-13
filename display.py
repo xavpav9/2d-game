@@ -225,7 +225,7 @@ class Renderer:
                     if evt.key == pygame.K_LCTRL:
                         self.ctrl = True
                     elif self.clientData["inMenu"]:
-                        if evt.unicode.lower() in self.validUsernameCharacters and (self.menuWait[0] == -1 or not self.menuWait[1]):
+                        if evt.unicode.lower() != "" and evt.unicode.lower() in self.validUsernameCharacters and (self.menuWait[0] == -1 or not self.menuWait[1]):
                             if len(self.client.username) < 15: self.client.username += evt.unicode
                         elif evt.key == pygame.K_BACKSPACE and (self.menuWait[0] == -1 or not self.menuWait[1]):
                             if self.ctrl: self.client.username = ""
@@ -238,7 +238,10 @@ class Renderer:
                             else:
                                 self.bottomText = self.font.render("Username too short", True, RED)
                                 self.menuWait = [0, False]
-
+                        elif evt.key == pygame.K_LEFT:
+                            self.clientData["iconNumber"] = (self.clientData["iconNumber"] - 1) % len(self.characterIcons)
+                        elif evt.key == pygame.K_RIGHT:
+                            self.clientData["iconNumber"] = (self.clientData["iconNumber"] + 1) % len(self.characterIcons)
                         elif evt.key == pygame.K_ESCAPE: # Quit game when Esc is pressed in menu
                             self.clientData["running"] = False
 

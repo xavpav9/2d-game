@@ -4,10 +4,13 @@ TICKRATE = 30
 
 """
 TODO
+    - Make runners slightly faster than the tagger.
     - Add different maps.
-    - Add player icons perhaps. Make an arrow system on the menu page to cycles between characters (each has an id).
-    - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Will have to preconfigure controller.
+    - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Might have to preconfigure controller.
     - Add controller support.
+    - Maybe add animations for clicking buttons.
+    - Add sound effects.
+    - Add powerups - speed boost.
 """
 
 class Game:
