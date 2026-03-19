@@ -497,6 +497,17 @@ class Renderer:
                             topPadding = 100
                             leftPadding += collectibleWidth + collectiblePadding
 
+                # Display Game/Intermission Time left
+                if self.serverData["inGame"]:
+                    timeLeft = self.serverData["gameTime"]
+                    timeLeftText = self.font.render(f"Time Left: {timeLeft:.1f}", True, BLACK)
+                else:
+                    timeLeft = self.serverData["intermissionTime"]
+                    timeLeftText = self.font.render(f"Intermission Time Left: {timeLeft:.1f}", True, BLACK)
+
+                timeLeftX, timeLeftY = (self.screenSize[0]/2 - timeLeftText.get_size()[0]/2, self.uiPadding[1])
+                self.screen.blit(timeLeftText, (timeLeftX, timeLeftY))
+
 
 
                 # Manage alert text

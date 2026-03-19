@@ -23,9 +23,8 @@ class Game:
     def addServer(self, server):
         self.server = server
 
-    def addPlayer(self, player):
+    def placePlayer(self, playerSize):
         colliding = True
-        playerSize = self.serverData["player"]["defaultSize"]
         playerWidth, playerHeight = playerSize
         while colliding:
             valid = True
@@ -36,20 +35,29 @@ class Game:
                 colliding = self.checkCollisions(playerObject, otherPlayer)
                 if colliding: break
 
+        return position
+
+    def addPlayer(self, player):
+        playerSize = self.serverData["player"]["defaultSize"]
+        playerWidth, playerHeight = playerSize
+
+        position = self.placePlayer(playerSize)
+
         username = player["username"]
         colour = (random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
 
         tagger = False
-        if len(self.playerData) == 0:
-            tagger = True
-            self.server.distributeData("a" + json.dumps([f"{username} is the new tagger."]), [])
-        else:
-            for otherPlayer in self.playerData:
-                if otherPlayer["tagger"]:
-                    currentTagger = otherPlayer
-                    break
+        if self.serverData["inGame"]:
+            if len(self.playerData) == 0:
+                tagger = True
+                self.server.distributeData("a" + json.dumps([f"{username} is the new tagger."]), [])
+            else:
+                for otherPlayer in self.playerData:
+                    if otherPlayer["tagger"]:
+                        currentTagger = otherPlayer
+                        break
 
-            self.server.sendData(player["conn"], "a" + json.dumps([f"{currentTagger['username']} is the tagger."]))
+                self.server.sendData(player["conn"], "a" + json.dumps([f"{currentTagger['username']} is the tagger."]))
 
         self.playerData.append({"username": username,
                                 "position": position,
@@ -158,8 +166,6 @@ class Game:
                             collected.append(i)
                         elif otherPlayerY + otherPlayerHeight / 2 > playerY + playerHeight / 2: # otherPlayerY and playerY are from the centre, so add half of their heights to get the bottoms.
                             hidden = True # Hides username if you are behind a non-collidable, non-collectible object.
-                            #NEED TO REMOVE COMMENT:  if not collides: return True # if the player cannot collide, then this function was just run to see if they were hidden, so it can be exited.
-
 
         return hidden, collected
 
@@ -168,12 +174,44 @@ class Game:
         tickRate = self.tickRate
         frameTime = 1000 / tickRate
         speed = 8
+        self.serverData["inGame"] = True
+        self.serverData["gameTime"] = 60
 
         while running[0]:
             startTime = time.time()
             if len(self.playerData) != 0:
+                if not self.serverData["inGame"]:
+                    # In intermission
+                    self.serverData["intermissionTime"] -= 1 / TICKRATE
+
+                    if 3 < self.serverData["intermissionTime"] < 3.1:
+                        self.server.distributeData("a" + json.dumps([f"3"]), [])
+                    elif 2 < self.serverData["intermissionTime"] < 2.1:
+                        self.server.distributeData("a" + json.dumps([f"2"]), [])
+                    elif 1 < self.serverData["intermissionTime"] < 1.1:
+                        self.server.distributeData("a" + json.dumps([f"1"]), [])
+
+                    if self.serverData["intermissionTime"] <= 0:
+                        self.serverData["inGame"] = True
+                        self.serverData["gameTime"] = 60
+
+                        for player in self.playerData:
+                            player["position"] = self.placePlayer(player["size"])
+
+                        newTagger = self.playerData[random.randint(0, len(self.playerData) - 1)]
+                        newTagger["tagger"] = True
+
+                        self.server.distributeData("a" + json.dumps([f"{newTagger['username']} is the new tagger."]), [])
+
+
+                elif self.serverData["gameTime"] <= 0:
+                    # Game ended
+                    self.serverData["inGame"] = False
+                    self.serverData["intermissionTime"] = 10
+                    for player in self.playerData:
+                        player["tagger"] = False
+
                 mapSize = self.serverData["map"]["size"]
-                serverDataUpdated = False
                 
                 for player in self.playerData:
                     # Move player based on their velocity.
@@ -220,7 +258,6 @@ class Game:
                         player["hidden"] = hidden
 
                         for i in range(len(collectibles)):
-                            serverDataUpdated = True
                             collectibleIndex = collectibles[i] - i # will remove one item on each loop, so -i to keep it in the correct place
                             player["collectibles"].append(self.serverData["features"][collectibleIndex]) # These will be items or powerups ( which will have a inbuilt timer
                             self.serverData["features"].pop(collectibleIndex)
@@ -288,7 +325,6 @@ class Game:
                         else: i += 1
 
                 if random.randint(0, TICKRATE * 10) == 0: 
-                    serverDataUpdated = True
                     self.serverData["features"].append({"name": "speedUp",
                                     "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
                                      "size": [40, 40],
@@ -298,7 +334,12 @@ class Game:
                                      "multiplier": random.randint(11, 14) / 10})
 
                 self.server.distributeData("p" + json.dumps(self.playerData), [])
-                if serverDataUpdated: self.server.distributeData("s" + json.dumps(self.serverData), [])
+                self.server.distributeData("s" + json.dumps(self.serverData), [])
+
+                self.serverData["gameTime"] -= 1 / TICKRATE
+            else:
+                self.serverData["intermissionTime"] = 5
+                self.serverData["inGame"] = False
 
             endTime = time.time()
             totalTime = (endTime-startTime)

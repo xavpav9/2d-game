@@ -155,7 +155,10 @@ if __name__ == "__main__":
     gameHandler = Game([], {"map": {"size": mapSize, "innerColour": (200,255,200), "outerColour": (20,20,255)},
                             "player": {"defaultSize": [30, 30]},
                             "features": features,
-                            "tickRate": TICKRATE})
+                            "tickRate": TICKRATE,
+                            "gameTime": 60,
+                            "intermissionTime": -1,
+                            "inGame": False})
 
     server = Server(ip, port, 8, gameHandler)
     gameHandler.addServer(server)
