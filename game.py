@@ -31,6 +31,7 @@ class Game:
             position = [random.randint(0, self.serverData["map"]["size"][0] - playerWidth), random.randint(0, self.serverData["map"]["size"][1] - playerHeight)]
             playerObject = {"position": position, "size": playerSize}
 
+            colliding = False # for when there are no players or features
             for otherPlayer in self.playerData + self.serverData["features"]:
                 colliding = self.checkCollisions(playerObject, otherPlayer)
                 if colliding: break
@@ -169,34 +170,89 @@ class Game:
 
         return hidden, collected
 
+    def setUpMap(self):
+        features = []
+        mapSize = [1000, 1200]
+        maxFeatureHeight = 200
+        speedUpWidth = 40
+        speedUpHeight = 40
+        for i in range(2, (mapSize[1] - maxFeatureHeight) // 100 + 1):
+            rockWidth = random.randint(20, 40)
+            rockHeight = rockWidth + random.randint(-2, 2)
+            bushWidth = random.randint(80, 160)
+            bushHeight = bushWidth // 2 + random.randint(-2, 2)
+
+            features.append({"name": "rock",
+                             "position": [random.randint(0, mapSize[0] - rockWidth), i * 100 + random.randint(-80, 80)],
+                             "size": [rockWidth, rockHeight],
+                             "collides": True,
+                             "type": "object"})
+
+            features.append({"name": "bush",
+                             "position": [random.randint(0, mapSize[0] - bushWidth), i * 100 + random.randint(-80, 80)],
+                             "size": [bushWidth, bushHeight],
+                             "collides": False,
+                             "type": "object"})
+
+            if random.randint(1, 5) == 1:
+                features.append({"name": "speedUp",
+                                 "position": [random.randint(0, mapSize[0] - speedUpWidth), i * 100 + random.randint(-80, 80)],
+                                 "size": [speedUpWidth, speedUpHeight],
+                                 "collides": False,
+                                 "type": "collectible",
+                                 "time": TICKRATE * 3,
+                                 "multiplier": random.randint(11, 14) / 10})
+
+        self.serverData["map"] = {"size": mapSize, "innerColour": (200,255,200), "outerColour": (20,20,255)}
+        self.serverData["features"] = features
+
+    def clearMap(self):
+        self.serverData["map"] = {"size": [400, 400], "innerColour": (255,255,255), "outerColour": (100, 100, 100)}
+        self.serverData["features"] = []
+
 
     def tick(self, running):
         tickRate = self.tickRate
         frameTime = 1000 / tickRate
         speed = 8
+        timeAborted = 0
         self.serverData["inGame"] = True
         self.serverData["gameTime"] = 60
 
         while running[0]:
             startTime = time.time()
             if len(self.playerData) != 0:
-                if not self.serverData["inGame"]:
+                if len(self.playerData) == 1 and self.serverData["inGame"]:
+                    # Abort game since there is only one person
+                    timeAborted = time.time()
+                    self.server.distributeData("a" + json.dumps({"text": "Game Aborted", "size": "veryBig", "colour": (255,0,0)}), [])
+                    self.serverData["inGame"] = False
+                    self.clearMap()
+                    self.serverData["intermissionTime"] = 10
+                    for player in self.playerData:
+                        player["position"] = self.placePlayer(player["size"])
+                        player["tagger"] = False
+
+                elif len(self.playerData) == 1:
+                    if time.time() - timeAborted > 1: self.server.distributeData("a" + json.dumps({"text": "Waiting for players...", "size": "big", "colour": (0,0,0)}), [])
+                elif not self.serverData["inGame"] and len(self.playerData) > 1:
                     # In intermission
                     self.serverData["intermissionTime"] -= 1 / TICKRATE
 
                     if 3 < self.serverData["intermissionTime"] < 3.1:
-                        self.server.distributeData("a" + json.dumps({"text": f"3", "size": "veryBig", "colour": (255,0,0)}), [])
+                        self.server.distributeData("a" + json.dumps({"text": "3", "size": "veryBig", "colour": (255,0,0)}), [])
                     elif 2 < self.serverData["intermissionTime"] < 2.1:
-                        self.server.distributeData("a" + json.dumps({"text": f"2", "size": "veryBig", "colour": (255,255,0)}), [])
+                        self.server.distributeData("a" + json.dumps({"text": "2", "size": "veryBig", "colour": (255,255,0)}), [])
                     elif 1 < self.serverData["intermissionTime"] < 1.1:
-                        self.server.distributeData("a" + json.dumps({"text": f"1", "size": "veryBig", "colour": (0,255,0)}), [])
+                        self.server.distributeData("a" + json.dumps({"text": "1", "size": "veryBig", "colour": (0,255,0)}), [])
 
                     if self.serverData["intermissionTime"] <= 0:
+                        # Game starting
                         self.serverData["inGame"] = True
                         self.serverData["gameTime"] = 60
+                        self.setUpMap()
 
-                        for player in self.playerData:
-                            player["position"] = self.placePlayer(player["size"])
+                        for player in self.playerData: player["position"] = self.placePlayer(player["size"])
 
                         newTagger = self.playerData[random.randint(0, len(self.playerData) - 1)]
                         newTagger["tagger"] = True
@@ -207,8 +263,13 @@ class Game:
                     # Game ended
                     self.serverData["inGame"] = False
                     self.serverData["intermissionTime"] = 10
+                    self.clearMap()
+
                     for player in self.playerData:
-                        player["tagger"] = False
+                        player["position"] = self.placePlayer(player["size"])
+                        if player["tagger"]:
+                            self.server.distributeData("a" + json.dumps({"text": f"{player['username']} lost.", "size": "big", "colour": (255,0,0)}), [])
+                            player["tagger"] = False
 
                 mapSize = self.serverData["map"]["size"]
                 
@@ -263,55 +324,69 @@ class Game:
 
 
                     
-                    # Check if they have been hit.
-                    for otherPlayer in self.playerData:
-                        if otherPlayer["username"] != player["username"]:
-                            for shot in otherPlayer["shots"]:
-                                # {"username", "playerSize", "position", "angle", "time", "size"}
-                                quadrant = abs((shot["angle"] + math.pi / 8) % (2 * math.pi)) // (math.pi / 4)
-                                position = [otherPlayer["position"][0] + otherPlayer["size"][0] / 2, otherPlayer["position"][1] + otherPlayer["size"][1] / 2]
-                                # position is currently at the centre of the otherPlayer, pointing down right
-                                match quadrant:
-                                    case 0: # above otherPlayer
-                                        position[0] -= shot["size"][0] / 2
-                                        position[1] -= shot["size"][1]
-                                    case 1: # top right
-                                        position[1] -= shot["size"][1]
-                                    case 2: # right
-                                        position[1] -= shot["size"][1] / 2
-                                    # case 3: bottom right, already in correct position
-                                    case 4: # bottom
-                                        position[0] -= shot["size"][0] / 2
-                                    case 5: # bottom left
-                                        position[0] -= shot["size"][0]
-                                    case 6: # left
-                                        position[0] -= shot["size"][0]
-                                        position[1] -= shot["size"][1] / 2
-                                    case 7: # top left
-                                        position[0] -= shot["size"][0]
-                                        position[1] -= shot["size"][1]
-                                        
-                                shotObject = {"position": position, "size": shot["size"]}
-                                colliding = self.checkCollisions(player, shotObject)
+                    # Only apply if game is running.
+                    if self.serverData["inGame"]:
+                        # Check if they have been hit.
+                        for otherPlayer in self.playerData:
+                            if otherPlayer["username"] != player["username"]:
+                                for shot in otherPlayer["shots"]:
+                                    # {"username", "playerSize", "position", "angle", "time", "size"}
+                                    quadrant = abs((shot["angle"] + math.pi / 8) % (2 * math.pi)) // (math.pi / 4)
+                                    position = [otherPlayer["position"][0] + otherPlayer["size"][0] / 2, otherPlayer["position"][1] + otherPlayer["size"][1] / 2]
+                                    # position is currently at the centre of the otherPlayer, pointing down right
+                                    match quadrant:
+                                        case 0: # above otherPlayer
+                                            position[0] -= shot["size"][0] / 2
+                                            position[1] -= shot["size"][1]
+                                        case 1: # top right
+                                            position[1] -= shot["size"][1]
+                                        case 2: # right
+                                            position[1] -= shot["size"][1] / 2
+                                        # case 3: bottom right, already in correct position
+                                        case 4: # bottom
+                                            position[0] -= shot["size"][0] / 2
+                                        case 5: # bottom left
+                                            position[0] -= shot["size"][0]
+                                        case 6: # left
+                                            position[0] -= shot["size"][0]
+                                            position[1] -= shot["size"][1] / 2
+                                        case 7: # top left
+                                            position[0] -= shot["size"][0]
+                                            position[1] -= shot["size"][1]
+                                            
+                                    shotObject = {"position": position, "size": shot["size"]}
+                                    colliding = self.checkCollisions(player, shotObject)
 
-                                if colliding and not player["tagger"]:
-                                    otherPlayer["tagger"] = False
-                                    otherPlayer["cooldown"] = 0
-                                    player["tagger"] = True
-                                    if shot["time"] >= 2: shot["time"] = 2
+                                    if colliding and not player["tagger"]:
+                                        otherPlayer["tagger"] = False
+                                        otherPlayer["cooldown"] = 0
+                                        player["tagger"] = True
+                                        if shot["time"] >= 2: shot["time"] = 2
 
-                    if player["cooldown"] > 0: player["cooldown"] -= 1
-                    else: player["cooldown"] = 0
+                        if player["cooldown"] > 0: player["cooldown"] -= 1
+                        else: player["cooldown"] = 0
 
-                    i = 0
-                    while i < len(player["collectibles"]):
-                        collectible = player["collectibles"][i]
-                        if collectible["time"] > 0:
-                            collectible["time"] -= 1
-                            if collectible["time"] <= 0:
-                                player["collectibles"].pop(i)
-                                i -= 1
-                        i += 1
+                        i = 0
+                        while i < len(player["collectibles"]):
+                            collectible = player["collectibles"][i]
+                            if collectible["time"] > 0:
+                                collectible["time"] -= 1
+                                if collectible["time"] <= 0:
+                                    player["collectibles"].pop(i)
+                                    i -= 1
+                            i += 1
+
+                # Only apply if game is running.
+                if self.serverData["inGame"]:
+                    # Generate a speedUp collectible
+                    if random.randint(0, TICKRATE * 10) == 0: 
+                        self.serverData["features"].append({"name": "speedUp",
+                                        "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
+                                         "size": [40, 40],
+                                         "collides": False,
+                                         "type": "collectible",
+                                         "time": TICKRATE * 3,
+                                         "multiplier": random.randint(11, 14) / 10})
 
                 # Reduce existence time for shot
                 for player in self.playerData:
@@ -323,24 +398,15 @@ class Game:
                             player["shots"].pop(i)
                         else: i += 1
 
-                if random.randint(0, TICKRATE * 10) == 0: 
-                    self.serverData["features"].append({"name": "speedUp",
-                                    "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
-                                     "size": [40, 40],
-                                     "collides": False,
-                                     "type": "collectible",
-                                     "time": TICKRATE * 3,
-                                     "multiplier": random.randint(11, 14) / 10})
-
                 self.server.distributeData("p" + json.dumps(self.playerData), [])
                 self.server.distributeData("s" + json.dumps(self.serverData), [])
 
                 self.serverData["gameTime"] -= 1 / TICKRATE
             else:
-                self.serverData["intermissionTime"] = 5
+                self.serverData["intermissionTime"] = 10
                 self.serverData["inGame"] = False
 
             endTime = time.time()
-            totalTime = (endTime-startTime)
+            totalTime = (endTime-startTime) * 1000
             if totalTime < frameTime:
                 time.sleep((frameTime - totalTime) / 1000)

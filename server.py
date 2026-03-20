@@ -118,47 +118,17 @@ class Server:
         self.sock.close()
 
 if __name__ == "__main__":
-
-
-    features = []
     mapSize = [1000, 1200]
-    maxFeatureHeight = 200
-    speedUpWidth = 40
-    speedUpHeight = 40
-    for i in range(2, (mapSize[1] - maxFeatureHeight) // 100 + 1):
-        rockWidth = random.randint(20, 40)
-        rockHeight = rockWidth + random.randint(-2, 2)
-        bushWidth = random.randint(80, 160)
-        bushHeight = bushWidth // 2 + random.randint(-2, 2)
 
-        features.append({"name": "rock",
-                         "position": [random.randint(0, mapSize[0] - rockWidth), i * 100 + random.randint(-80, 80)],
-                         "size": [rockWidth, rockHeight],
-                         "collides": True,
-                         "type": "object"})
-
-        features.append({"name": "bush",
-                         "position": [random.randint(0, mapSize[0] - bushWidth), i * 100 + random.randint(-80, 80)],
-                         "size": [bushWidth, bushHeight],
-                         "collides": False,
-                         "type": "object"})
-
-        if random.randint(1, 5) == 1:
-            features.append({"name": "speedUp",
-                             "position": [random.randint(0, mapSize[0] - speedUpWidth), i * 100 + random.randint(-80, 80)],
-                             "size": [speedUpWidth, speedUpHeight],
-                             "collides": False,
-                             "type": "collectible",
-                             "time": TICKRATE * 3,
-                             "multiplier": random.randint(11, 14) / 10})
 
     gameHandler = Game([], {"map": {"size": mapSize, "innerColour": (200,255,200), "outerColour": (20,20,255)},
                             "player": {"defaultSize": [30, 30]},
-                            "features": features,
+                            "features": [],
                             "tickRate": TICKRATE,
-                            "gameTime": 60,
+                            "gameTime": -1,
                             "intermissionTime": -1,
                             "inGame": False})
+    gameHandler.clearMap()
 
     server = Server(ip, port, 8, gameHandler)
     gameHandler.addServer(server)
