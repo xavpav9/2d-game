@@ -119,7 +119,9 @@ class Renderer:
         else:
             pygame.draw.rect(self.screen, playerInfo[2], (playerX, playerY, playerWidth, playerHeight))
 
-        if playerInfo[7]: # blue/red outlines
+        if not self.serverData["inGame"]: # blue/red/black outlines
+            pygame.draw.rect(self.screen, BLACK, (playerX, playerY, playerWidth, playerHeight), 1)
+        elif playerInfo[7]:
             pygame.draw.rect(self.screen, RED, (playerX, playerY, playerWidth, playerHeight), 1)
         else:
             pygame.draw.rect(self.screen, BLUE, (playerX, playerY, playerWidth, playerHeight), 1)
@@ -439,6 +441,7 @@ class Renderer:
                 borderWidth = 2
                 # - Map border
                 pygame.draw.rect(self.screen, BLACK, (self.screenSize[0] / 2 - offset[0] - borderWidth, self.screenSize[1] / 2 - offset[1] - borderWidth, mapSize[0] + borderWidth * 2, mapSize[1] + borderWidth * 2), borderWidth)
+
                 # - Map inner
                 pygame.draw.rect(self.screen, self.serverData["map"]["innerColour"], (self.screenSize[0]/2 - offset[0], self.screenSize[1]/2 - offset[1], mapSize[0], mapSize[1]))
 
@@ -447,6 +450,12 @@ class Renderer:
                 pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] + mapSize[0] + borderWidth, self.screenSize[1]/2 - offset[1] - borderWidth, 1000, mapSize[1] * 2 + 1000)) # right
                 pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] - 1000, self.screenSize[1]/2 - offset[1] + mapSize[1] + borderWidth, mapSize[0] * 2 + 1000, mapSize[1] + 1000)) # bottom
                 pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] - borderWidth - 1000, self.screenSize[1]/2 - offset[1] - 1000, 1000, mapSize[1]*2 + 1000)) # left
+                
+                # - Map name
+                mapName = self.font.render(self.serverData["map"]["name"], True, [255-col for col in self.serverData["map"]["outerColour"]])
+                mapNameX = self.screenSize[0]/2 + mapSize[0]/2 + borderWidth - mapName.get_size()[0]/2 - offset[0]
+                mapNameY = self.screenSize[1]/2-mapName.get_size()[1] - 4 - offset[1]
+                self.screen.blit(mapName, (mapNameX, mapNameY))
 
                 # Draw background features ( solid colours ).
 

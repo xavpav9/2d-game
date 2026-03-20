@@ -9,9 +9,11 @@ n. = priority
 1.
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Might have to preconfigure controller.
     - Add controller support.
+    - New abilities - Larger shot for tagger; See through bushes for all;
 2.
     - Add sound effects.
-    - Allow user setting up server to customise a few variables - e.g. how many taggers there are.
+    - Add more assets.
+    - Allow user setting up the server to customise a few variables - e.g. how many taggers there are.
 3.
     - Maybe add animations for clicking buttons.
     - Add a block that can only be collided with at the base.
@@ -22,6 +24,7 @@ class Game:
         self.playerData = playerData
         self.serverData = serverData
         self.tickRate = 30
+        self.mapTypes = ["Nature Map", "Bushy Map", "Rocky Map"]
 
     def addServer(self, server):
         self.server = server
@@ -175,6 +178,8 @@ class Game:
         return hidden, collected
 
     def setUpMap(self, voting=True):
+        currentMap = 0
+
         if voting:
             zones = []
             for feature in self.serverData["features"]:
@@ -194,9 +199,7 @@ class Game:
                     highestVotes = zone[1]
                     currentZone = zone[0]
 
-            currentMap = int(currentZone["name"].split(" ")[-1])
-        else:
-            currentMap = 0
+            currentMap = self.mapTypes.index(currentZone["name"])
 
         match currentMap:
             case 0:
@@ -232,7 +235,7 @@ class Game:
                                          "time": TICKRATE * 3,
                                          "multiplier": random.randint(11, 14) / 10})
 
-                self.serverData["map"] = {"size": mapSize, "innerColour": (200,255,200), "outerColour": (80,80,255)}
+                self.serverData["map"] = {"size": mapSize, "innerColour": (200,255,200), "outerColour": (80,80,255), "name": self.mapTypes[currentMap]}
                 self.serverData["features"] = features
             
             case 1:
@@ -248,7 +251,7 @@ class Game:
                                      "collides": False,
                                      "type": "object"})
 
-                self.serverData["map"] = {"size": mapSize, "innerColour": (100,255,100), "outerColour": (80,80,255)}
+                self.serverData["map"] = {"size": mapSize, "innerColour": (100,255,100), "outerColour": (80,80,255), "name": self.mapTypes[currentMap]}
                 self.serverData["features"] = features
 
             case 2:
@@ -266,38 +269,40 @@ class Game:
                                      "collides": True,
                                      "type": "object"})
 
-                self.serverData["map"] = {"size": mapSize, "innerColour": (200,200,200), "outerColour": (80,80,255)}
+                self.serverData["map"] = {"size": mapSize, "innerColour": (200,200,200), "outerColour": (80,80,255), "name": self.mapTypes[currentMap]}
                 self.serverData["features"] = features
 
                 
 
     def setUpLobby(self):
         mapSize = [400, 400]
-        numOfMaps = 3
+        numOfMaps = len(self.mapTypes)
         features = []
 
-        length = mapSize[0] / numOfMaps
+        height = mapSize[1] / numOfMaps
         for i in range(numOfMaps):
-            startX = i / numOfMaps * mapSize[0]
-            features.append({"name": f"Map {i}",
+            startY = int(i / numOfMaps * mapSize[1])
+            features.append({"name": f"{self.mapTypes[i]}",
                              "colour": (100 / numOfMaps * i + 155, 100 / numOfMaps * i + 155, 255),
-                             "position": [startX, 0],
-                             "size": [length, mapSize[1]],
+                             "position": [0, startY],
+                             "size": [mapSize[0], height],
                              "collides": False,
                              "type": "zone"})
 
 
-        self.serverData["map"] = {"size": mapSize, "innerColour": (255,255,255), "outerColour": (100, 100, 100)}
+        self.serverData["map"] = {"size": mapSize, "innerColour": (255,255,255), "outerColour": (100, 100, 100), "name": "Lobby"}
         self.serverData["features"] = features
 
 
     def tick(self, running):
-        tickRate = self.tickRate
-        frameTime = 1000 / tickRate
-        speed = 8
-        timeAborted = 0
-        self.serverData["inGame"] = True
-        self.serverData["gameTime"] = 60
+        tickRate = self.tickRate # ticks per second
+        frameTime = 1000 / tickRate # milliseconds per frame
+        speed = 8 # x and y speed of player
+        timeAborted = 0 # time since last aborted game - for alerts
+        maxIntermissionTime = 15 # maximum time for intermissions
+        maxGameTime = 90 # maximum game time
+        self.serverData["inGame"] = False
+        self.serverData["intermissionTime"] = maxIntermissionTime
 
         while running[0]:
             startTime = time.time()
@@ -308,17 +313,19 @@ class Game:
                     self.server.distributeData("a" + json.dumps({"text": "Game Aborted", "size": "veryBig", "colour": (255,0,0)}), [])
                     self.serverData["inGame"] = False
                     self.setUpLobby()
-                    self.serverData["intermissionTime"] = 10
+                    self.serverData["intermissionTime"] = maxIntermissionTime
                     for player in self.playerData:
                         player["position"] = self.placePlayer(player["size"])
                         player["tagger"] = False
 
                 elif len(self.playerData) == 1:
+                    self.serverData["intermissionTime"] = maxIntermissionTime
                     if time.time() - timeAborted > 1: self.server.distributeData("a" + json.dumps({"text": "Waiting for players...", "size": "big", "colour": (0,0,0)}), [])
                 elif not self.serverData["inGame"] and len(self.playerData) > 1:
                     # In intermission
                     self.serverData["intermissionTime"] -= 1 / TICKRATE
 
+                    # Countdown to start game
                     if 3 < self.serverData["intermissionTime"] < 3.1:
                         self.server.distributeData("a" + json.dumps({"text": "3", "size": "veryBig", "colour": (255,0,0)}), [])
                     elif 2 < self.serverData["intermissionTime"] < 2.1:
@@ -329,7 +336,7 @@ class Game:
                     if self.serverData["intermissionTime"] <= 0:
                         # Game starting
                         self.serverData["inGame"] = True
-                        self.serverData["gameTime"] = 60
+                        self.serverData["gameTime"] = maxGameTime
                         self.setUpMap()
 
                         for player in self.playerData: player["position"] = self.placePlayer(player["size"])
@@ -342,7 +349,7 @@ class Game:
                 elif self.serverData["gameTime"] <= 0:
                     # Game ended
                     self.serverData["inGame"] = False
-                    self.serverData["intermissionTime"] = 10
+                    self.serverData["intermissionTime"] = maxIntermissionTime
                     self.setUpLobby()
 
                     for player in self.playerData:
@@ -455,6 +462,14 @@ class Game:
                                     player["collectibles"].pop(i)
                                     i -= 1
                             i += 1
+                            
+                        # Countdown to end game
+                        if 3 < self.serverData["gameTime"] < 3.1:
+                            self.server.distributeData("a" + json.dumps({"text": "3", "size": "veryBig", "colour": (255,0,0)}), [])
+                        elif 2 < self.serverData["gameTime"] < 2.1:
+                            self.server.distributeData("a" + json.dumps({"text": "2", "size": "veryBig", "colour": (255,255,0)}), [])
+                        elif 1 < self.serverData["gameTime"] < 1.1:
+                            self.server.distributeData("a" + json.dumps({"text": "1", "size": "veryBig", "colour": (0,255,0)}), [])
 
                 # Only apply if game is running.
                 if self.serverData["inGame"]:
@@ -483,7 +498,7 @@ class Game:
 
                 self.serverData["gameTime"] -= 1 / TICKRATE
             else:
-                self.serverData["intermissionTime"] = 10
+                self.serverData["intermissionTime"] = maxIntermissionTime
                 self.serverData["inGame"] = False
 
             endTime = time.time()
