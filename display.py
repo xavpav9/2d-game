@@ -200,6 +200,7 @@ class Renderer:
         if typeface not in availableFonts: typeface = availableFonts[0]
 
         clock = pygame.time.Clock()
+        self.veryBigFont = pygame.font.SysFont(typeface, 80, True, True)
         self.bigFont = pygame.font.SysFont(typeface, 40, True, True)
         self.mediumFont = pygame.font.SysFont(typeface, 30, True, True)
         self.font = pygame.font.SysFont(typeface, 20, True, True)
@@ -511,9 +512,12 @@ class Renderer:
 
 
                 # Manage alert text
-                if self.clientData["alert"] != "":
-                    self.alertText = self.bigFont.render(self.clientData["alert"], True, RED)
-                    self.clientData["alert"] = ""
+                if self.clientData["alert"]["text"] != "":
+                    if self.clientData["alert"]["size"] == "veryBig":
+                        self.alertText = self.veryBigFont.render(self.clientData["alert"]["text"], True, self.clientData["alert"]["colour"])
+                    else:
+                        self.alertText = self.bigFont.render(self.clientData["alert"]["text"], True, self.clientData["alert"]["colour"])
+                    self.clientData["alert"]["text"] = ""
                     self.alertWait[0] = 0
                 if self.alertWait[0] != -1:
                     self.screen.blit(self.alertText, (self.screenSize[0] / 2 - self.alertText.get_size()[0] / 2, self.screenSize[1] / 2 - self.alertText.get_size()[1] / 2))

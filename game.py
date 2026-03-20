@@ -50,14 +50,14 @@ class Game:
         if self.serverData["inGame"]:
             if len(self.playerData) == 0:
                 tagger = True
-                self.server.distributeData("a" + json.dumps([f"{username} is the new tagger."]), [])
+                self.server.distributeData("a" + json.dumps({"text": f"{username} is the new tagger.", "size": "big", "colour": (255,0,0)}), [])
             else:
                 for otherPlayer in self.playerData:
                     if otherPlayer["tagger"]:
                         currentTagger = otherPlayer
                         break
 
-                self.server.sendData(player["conn"], "a" + json.dumps([f"{currentTagger['username']} is the tagger."]))
+                self.server.sendData(player["conn"], "a" + json.dumps({"text": f"{currentTagger['username']} is the tagger.", "size": "big", "colour": (255,0,0)}))
 
         self.playerData.append({"username": username,
                                 "position": position,
@@ -81,7 +81,7 @@ class Game:
             newTagger = self.playerData[random.randint(0, len(self.playerData) -1)]
             newTagger["tagger"] = True
 
-            self.server.distributeData("a" + json.dumps([f"{newTagger['username']} is the new tagger."]), [])
+            self.server.distributeData("a" + json.dumps({"text": f"{newTagger['username']} is the new tagger.", "size": "big", "colour": (255,0,0)}), [])
         
 
     def handleData(self, data, player):
@@ -185,11 +185,11 @@ class Game:
                     self.serverData["intermissionTime"] -= 1 / TICKRATE
 
                     if 3 < self.serverData["intermissionTime"] < 3.1:
-                        self.server.distributeData("a" + json.dumps([f"3"]), [])
+                        self.server.distributeData("a" + json.dumps({"text": f"3", "size": "veryBig", "colour": (255,0,0)}), [])
                     elif 2 < self.serverData["intermissionTime"] < 2.1:
-                        self.server.distributeData("a" + json.dumps([f"2"]), [])
+                        self.server.distributeData("a" + json.dumps({"text": f"2", "size": "veryBig", "colour": (255,255,0)}), [])
                     elif 1 < self.serverData["intermissionTime"] < 1.1:
-                        self.server.distributeData("a" + json.dumps([f"1"]), [])
+                        self.server.distributeData("a" + json.dumps({"text": f"1", "size": "veryBig", "colour": (0,255,0)}), [])
 
                     if self.serverData["intermissionTime"] <= 0:
                         self.serverData["inGame"] = True
@@ -201,8 +201,7 @@ class Game:
                         newTagger = self.playerData[random.randint(0, len(self.playerData) - 1)]
                         newTagger["tagger"] = True
 
-                        self.server.distributeData("a" + json.dumps([f"{newTagger['username']} is the new tagger."]), [])
-
+                        self.server.distributeData("a" + json.dumps({"text": f"{newTagger['username']} is the new tagger.", "size": "big", "colour": (255,0,0)}), [])
 
                 elif self.serverData["gameTime"] <= 0:
                     # Game ended

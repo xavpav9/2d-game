@@ -29,13 +29,13 @@ def handleServer(client, playerData, serverData, clientData):
                 clientData["problem"] = " ".join(information)
                 return 
             case "a":
-                clientData["alert"] = information[0]
+                clientData["alert"] = information
             case _:
                 print(f"unknown request \"{data[0]}\" from server")
 
 playerData = []
 serverData = {}
-clientData = {"inMenu": True, "running": True, "problem": "", "alert": ""}
+clientData = {"inMenu": True, "running": True, "problem": "", "alert": {"text": "", "size": "", "colour": (255,0,0)}}
 client = Client(ip, port, f"Player_{str(random.randint(0, 999)).zfill(3)}")
 
 renderer = display.Renderer(client, playerData, serverData, clientData)
