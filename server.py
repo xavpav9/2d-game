@@ -128,7 +128,7 @@ if __name__ == "__main__":
                             "gameTime": -1,
                             "intermissionTime": -1,
                             "inGame": False})
-    gameHandler.clearMap()
+    gameHandler.setUpLobby()
 
     server = Server(ip, port, 8, gameHandler)
     gameHandler.addServer(server)

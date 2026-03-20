@@ -65,7 +65,11 @@ class Renderer:
             xPos, yPos = feature["position"]
             width, height = feature["size"]
             name = feature["name"]
-            featurePositions.append([xPos, yPos, (width, height), name])
+            colour = False
+            if feature["type"] == "zone":
+                colour = feature["colour"]
+
+            featurePositions.append([xPos, yPos, (width, height), name, colour])
 
         # sorting based off of the y value + playerSize.
         return sorted(featurePositions, key=lambda data: data[1] + data[2][1])
@@ -121,15 +125,23 @@ class Renderer:
             pygame.draw.rect(self.screen, BLUE, (playerX, playerY, playerWidth, playerHeight), 1)
 
     def displayFeature(self, featureInfo, offset):
-        # featureInfo = [x, y, size, name] size=width,height
+        # featureInfo = [x, y, size, name, colour] size=width,height
         width, height = featureInfo[2]
         featureX = featureInfo[0] - offset[0] + self.screen.get_size()[0] / 2
         featureY = featureInfo[1] - offset[1] + self.screen.get_size()[1] / 2
 
-        icon = self.featureIcons["noTexture"]
-        if featureInfo[3] in self.featureIcons.keys(): icon = self.featureIcons[featureInfo[3]]
-        scaledIcon = pygame.transform.scale(icon, (width, height))
-        self.screen.blit(scaledIcon, (featureX, featureY))
+        if featureInfo[4] == False:
+            icon = self.featureIcons["noTexture"]
+            if featureInfo[3] in self.featureIcons.keys(): icon = self.featureIcons[featureInfo[3]]
+            scaledIcon = pygame.transform.scale(icon, (width, height))
+            self.screen.blit(scaledIcon, (featureX, featureY))
+        else:
+            text = self.font.render(featureInfo[3], True, [255-col for col in featureInfo[4]])
+            textX = featureX + featureInfo[2][0]/2 - text.get_size()[0]/2
+            textY = featureY + featureInfo[2][1]/2 - text.get_size()[1]/2
+
+            pygame.draw.rect(self.screen, featureInfo[4], (featureX, featureY, featureInfo[2][0], featureInfo[2][1]))
+            self.screen.blit(text, (textX, textY))
 
     def calculateAngle(self, x, y):
         if x == 0:
@@ -429,11 +441,23 @@ class Renderer:
                 pygame.draw.rect(self.screen, BLACK, (self.screenSize[0] / 2 - offset[0] - borderWidth, self.screenSize[1] / 2 - offset[1] - borderWidth, mapSize[0] + borderWidth * 2, mapSize[1] + borderWidth * 2), borderWidth)
                 # - Map inner
                 pygame.draw.rect(self.screen, self.serverData["map"]["innerColour"], (self.screenSize[0]/2 - offset[0], self.screenSize[1]/2 - offset[1], mapSize[0], mapSize[1]))
+
                 # - Map outer
                 pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] - borderWidth, self.screenSize[1]/2 - offset[1] - borderWidth - 1000, mapSize[0] * 2 + 1000 , 1000)) # top
                 pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] + mapSize[0] + borderWidth, self.screenSize[1]/2 - offset[1] - borderWidth, 1000, mapSize[1] * 2 + 1000)) # right
                 pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] - 1000, self.screenSize[1]/2 - offset[1] + mapSize[1] + borderWidth, mapSize[0] * 2 + 1000, mapSize[1] + 1000)) # bottom
                 pygame.draw.rect(self.screen, self.serverData["map"]["outerColour"], (self.screenSize[0]/2 - offset[0] - borderWidth - 1000, self.screenSize[1]/2 - offset[1] - 1000, 1000, mapSize[1]*2 + 1000)) # left
+
+                # Draw background features ( solid colours ).
+
+                i = 0
+                while i < len(featurePositions):
+                    if featurePositions[i][4] != False:
+                        self.displayFeature(featurePositions[i], offset)
+                        featurePositions.pop(i)
+                    else:
+                        i += 1
+
 
                 # Draw Players and Features and Shots
                 playerIncrementer = 0

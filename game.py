@@ -4,14 +4,17 @@ TICKRATE = 30
 
 """
 TODO
-    - Add different maps.
-    - Add a block that can only be collided with at the base.
+
+n. = priority
+1.
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Might have to preconfigure controller.
     - Add controller support.
-    - Maybe add animations for clicking buttons.
+2.
     - Add sound effects.
     - Allow user setting up server to customise a few variables - e.g. how many taggers there are.
-    - Perhaps add a lobby to vote on what will happen in the next round.
+3.
+    - Maybe add animations for clicking buttons.
+    - Add a block that can only be collided with at the base.
 """
 
 class Game:
@@ -33,7 +36,7 @@ class Game:
 
             colliding = False # for when there are no players or features
             for otherPlayer in self.playerData + self.serverData["features"]:
-                colliding = self.checkCollisions(playerObject, otherPlayer)
+                if otherPlayer["collides"]: colliding = self.checkCollisions(playerObject, otherPlayer)
                 if colliding: break
 
         return position
@@ -71,7 +74,8 @@ class Game:
                                 "cooldown": 0,
                                 "shots": [],
                                 "iconNumber": 0,
-                                "collectibles": []})
+                                "collectibles": [],
+                                "type": "player"})
     
     def removePlayer(self, index):
         replace = False
@@ -166,49 +170,125 @@ class Game:
                         if otherPlayer["type"] == "collectible":
                             collected.append(i)
                         elif otherPlayerY + otherPlayerHeight / 2 > playerY + playerHeight / 2: # otherPlayerY and playerY are from the centre, so add half of their heights to get the bottoms.
-                            hidden = True # Hides username if you are behind a non-collidable, non-collectible object.
+                            if otherPlayer["type"] != "zone": hidden = True # Hides username if you are behind a non-collidable, non-collectible object, unless if it is a zone.
 
         return hidden, collected
 
-    def setUpMap(self):
+    def setUpMap(self, voting=True):
+        if voting:
+            zones = []
+            for feature in self.serverData["features"]:
+                if feature["type"] == "zone":
+                    zones.append([feature, 0])
+
+            for player in self.playerData:
+                for zone in zones:
+                    if self.checkCollisions(player, zone[0]):
+                        zone[1] += 1
+
+            highestVotes = -1
+            currentZone = 0
+
+            for zone in zones:
+                if zone[1] > highestVotes:
+                    highestVotes = zone[1]
+                    currentZone = zone[0]
+
+            currentMap = int(currentZone["name"].split(" ")[-1])
+        else:
+            currentMap = 0
+
+        match currentMap:
+            case 0:
+                features = []
+                mapSize = [random.randint(10, 15) * 100, random.randint(10, 15) * 100]
+                maxFeatureHeight = 200
+                speedUpWidth = 40
+                speedUpHeight = 40
+                for i in range(2, (mapSize[1] - maxFeatureHeight) // 100 + 1):
+                    rockWidth = random.randint(20, 40)
+                    rockHeight = rockWidth + random.randint(-2, 2)
+                    bushWidth = random.randint(80, 160)
+                    bushHeight = bushWidth // 2 + random.randint(-2, 2)
+
+                    features.append({"name": "rock",
+                                     "position": [random.randint(0, mapSize[0] - rockWidth), i * 100 + random.randint(-80, 80)],
+                                     "size": [rockWidth, rockHeight],
+                                     "collides": True,
+                                     "type": "object"})
+
+                    features.append({"name": "bush",
+                                     "position": [random.randint(0, mapSize[0] - bushWidth), i * 100 + random.randint(-80, 80)],
+                                     "size": [bushWidth, bushHeight],
+                                     "collides": False,
+                                     "type": "object"})
+
+                    if random.randint(1, 5) == 1:
+                        features.append({"name": "speedUp",
+                                         "position": [random.randint(0, mapSize[0] - speedUpWidth), i * 100 + random.randint(-80, 80)],
+                                         "size": [speedUpWidth, speedUpHeight],
+                                         "collides": False,
+                                         "type": "collectible",
+                                         "time": TICKRATE * 3,
+                                         "multiplier": random.randint(11, 14) / 10})
+
+                self.serverData["map"] = {"size": mapSize, "innerColour": (200,255,200), "outerColour": (80,80,255)}
+                self.serverData["features"] = features
+            
+            case 1:
+                features = []
+                mapSize = [300, 300]
+
+                for i in range(20):
+                    bushWidth = random.randint(100, 120)
+                    bushHeight = bushWidth // 2 + random.randint(-2, 2)
+                    features.append({"name": "bush",
+                                     "position": [random.randint(2, mapSize[0] - bushWidth - 2), random.randint(2, mapSize[1] - bushHeight - 2)],
+                                     "size": [bushWidth, bushHeight],
+                                     "collides": False,
+                                     "type": "object"})
+
+                self.serverData["map"] = {"size": mapSize, "innerColour": (100,255,100), "outerColour": (80,80,255)}
+                self.serverData["features"] = features
+
+            case 2:
+
+                features = []
+                mapSize = [700, 700]
+
+                for i in range(60):
+                    rockWidth = random.randint(30, 35)
+                    rockHeight = rockWidth + random.randint(-2, 2)
+
+                    features.append({"name": "rock",
+                                     "position": [random.randint(0, mapSize[0] - rockWidth), random.randint(2, mapSize[1] - rockHeight - 2)],
+                                     "size": [rockWidth, rockHeight],
+                                     "collides": True,
+                                     "type": "object"})
+
+                self.serverData["map"] = {"size": mapSize, "innerColour": (200,200,200), "outerColour": (80,80,255)}
+                self.serverData["features"] = features
+
+                
+
+    def setUpLobby(self):
+        mapSize = [400, 400]
+        numOfMaps = 3
         features = []
-        mapSize = [1000, 1200]
-        maxFeatureHeight = 200
-        speedUpWidth = 40
-        speedUpHeight = 40
-        for i in range(2, (mapSize[1] - maxFeatureHeight) // 100 + 1):
-            rockWidth = random.randint(20, 40)
-            rockHeight = rockWidth + random.randint(-2, 2)
-            bushWidth = random.randint(80, 160)
-            bushHeight = bushWidth // 2 + random.randint(-2, 2)
 
-            features.append({"name": "rock",
-                             "position": [random.randint(0, mapSize[0] - rockWidth), i * 100 + random.randint(-80, 80)],
-                             "size": [rockWidth, rockHeight],
-                             "collides": True,
-                             "type": "object"})
-
-            features.append({"name": "bush",
-                             "position": [random.randint(0, mapSize[0] - bushWidth), i * 100 + random.randint(-80, 80)],
-                             "size": [bushWidth, bushHeight],
+        length = mapSize[0] / numOfMaps
+        for i in range(numOfMaps):
+            startX = i / numOfMaps * mapSize[0]
+            features.append({"name": f"Map {i}",
+                             "colour": (100 / numOfMaps * i + 155, 100 / numOfMaps * i + 155, 255),
+                             "position": [startX, 0],
+                             "size": [length, mapSize[1]],
                              "collides": False,
-                             "type": "object"})
+                             "type": "zone"})
 
-            if random.randint(1, 5) == 1:
-                features.append({"name": "speedUp",
-                                 "position": [random.randint(0, mapSize[0] - speedUpWidth), i * 100 + random.randint(-80, 80)],
-                                 "size": [speedUpWidth, speedUpHeight],
-                                 "collides": False,
-                                 "type": "collectible",
-                                 "time": TICKRATE * 3,
-                                 "multiplier": random.randint(11, 14) / 10})
 
-        self.serverData["map"] = {"size": mapSize, "innerColour": (200,255,200), "outerColour": (20,20,255)}
+        self.serverData["map"] = {"size": mapSize, "innerColour": (255,255,255), "outerColour": (100, 100, 100)}
         self.serverData["features"] = features
-
-    def clearMap(self):
-        self.serverData["map"] = {"size": [400, 400], "innerColour": (255,255,255), "outerColour": (100, 100, 100)}
-        self.serverData["features"] = []
 
 
     def tick(self, running):
@@ -227,7 +307,7 @@ class Game:
                     timeAborted = time.time()
                     self.server.distributeData("a" + json.dumps({"text": "Game Aborted", "size": "veryBig", "colour": (255,0,0)}), [])
                     self.serverData["inGame"] = False
-                    self.clearMap()
+                    self.setUpLobby()
                     self.serverData["intermissionTime"] = 10
                     for player in self.playerData:
                         player["position"] = self.placePlayer(player["size"])
@@ -263,7 +343,7 @@ class Game:
                     # Game ended
                     self.serverData["inGame"] = False
                     self.serverData["intermissionTime"] = 10
-                    self.clearMap()
+                    self.setUpLobby()
 
                     for player in self.playerData:
                         player["position"] = self.placePlayer(player["size"])
