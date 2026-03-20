@@ -7,6 +7,7 @@ TODO
 
 n. = priority
 1.
+    - Normalise timing - either seconds or game ticks, not either
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Might have to preconfigure controller.
     - Add controller support.
     - New abilities - Larger shot for tagger; See through bushes for all;
@@ -122,7 +123,15 @@ class Game:
                     if player["cooldown"] <= 0 and player["tagger"]:
                         player["cooldown"] = self.tickRate
                         shootingAngle = json.loads(data)[0]
-                        size = [dimension * 1.1 for dimension in self.serverData["player"]["defaultSize"]]
+
+                        multiplier = 1
+
+                        for collectible in player["collectibles"]:
+                            if collectible["name"] == "largerShot":
+                                multiplier *= collectible["multiplier"]
+
+                        size = [dimension * 1.1 * multiplier for dimension in self.serverData["player"]["defaultSize"]]
+
                         player["shots"].append({"size": size,
                                                 "angle": shootingAngle,
                                                 "time": self.tickRate / 7})
@@ -233,7 +242,9 @@ class Game:
                                          "collides": False,
                                          "type": "collectible",
                                          "time": TICKRATE * 3,
-                                         "multiplier": random.randint(11, 14) / 10})
+                                         "tagger": True,
+                                         "runner": True,
+                                         "multiplier": 1.5})
 
                 self.serverData["map"] = {"size": mapSize, "innerColour": (200,255,200), "outerColour": (80,80,255), "name": self.mapTypes[currentMap]}
                 self.serverData["features"] = features
@@ -404,10 +415,14 @@ class Game:
 
                         player["hidden"] = hidden
 
+                        removed = 0
                         for i in range(len(collectibles)):
-                            collectibleIndex = collectibles[i] - i # will remove one item on each loop, so -i to keep it in the correct place
-                            player["collectibles"].append(self.serverData["features"][collectibleIndex]) # These will be items or powerups ( which will have a inbuilt timer
-                            self.serverData["features"].pop(collectibleIndex)
+                            collectibleIndex = collectibles[i] - removed # -removed to keep it in the correct place in the list
+                            collectible = self.serverData["features"][collectibleIndex]
+                            if player["tagger"] and collectible["tagger"] or not player["tagger"] and collectible["runner"]: # Only collect it if allowed
+                                player["collectibles"].append(collectible)
+                                self.serverData["features"].pop(collectibleIndex)
+                                removed += 1
 
 
                     
@@ -448,7 +463,23 @@ class Game:
                                         otherPlayer["tagger"] = False
                                         otherPlayer["cooldown"] = 0
                                         player["tagger"] = True
+
                                         if shot["time"] >= 2: shot["time"] = 2
+
+                                        i = 0
+                                        while i < len(player["collectibles"]):
+                                            if player["collectibles"][i]["tagger"] == False:
+                                                player["collectibles"].pop(i)
+                                            else:
+                                                i += 1
+
+                                        i = 0
+                                        while i < len(otherPlayer["collectibles"]):
+                                            if otherPlayer["collectibles"][i]["runner"] == False:
+                                                otherPlayer["collectibles"].pop(i)
+                                            else:
+                                                i += 1
+
 
                         if player["cooldown"] > 0: player["cooldown"] -= 1
                         else: player["cooldown"] = 0
@@ -481,6 +512,20 @@ class Game:
                                          "collides": False,
                                          "type": "collectible",
                                          "time": TICKRATE * 3,
+                                         "tagger": True,
+                                         "runner": True,
+                                         "multiplier": random.randint(11, 14) / 10})
+
+                    # Generate a larger shot collectible
+                    if random.randint(0, TICKRATE * 12) == 0: 
+                        self.serverData["features"].append({"name": "largerShot",
+                                        "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
+                                         "size": [40, 40],
+                                         "collides": False,
+                                         "type": "collectible",
+                                         "time": TICKRATE * 4,
+                                         "tagger": True,
+                                         "runner": False,
                                          "multiplier": random.randint(11, 14) / 10})
 
                 # Reduce existence time for shot
