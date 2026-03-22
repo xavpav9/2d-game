@@ -1,16 +1,13 @@
 import random, json, time, math
 
-TICKRATE = 30
-
 """
 TODO
 
 n. = priority
 1.
-    - Normalise timing - either seconds or game ticks, not either
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Might have to preconfigure controller.
     - Add controller support.
-    - New abilities - Larger shot for tagger; See through bushes for all;
+    - New abilities - See through bushes for all;
 2.
     - Add sound effects.
     - Add more assets.
@@ -241,7 +238,7 @@ class Game:
                                          "size": [speedUpWidth, speedUpHeight],
                                          "collides": False,
                                          "type": "collectible",
-                                         "time": TICKRATE * 3,
+                                         "time": tickRate * 3,
                                          "tagger": True,
                                          "runner": True,
                                          "multiplier": 1.5})
@@ -310,8 +307,8 @@ class Game:
         frameTime = 1000 / tickRate # milliseconds per frame
         speed = 8 # x and y speed of player
         timeAborted = 0 # time since last aborted game - for alerts
-        maxIntermissionTime = 15 # maximum time for intermissions
-        maxGameTime = 90 # maximum game time
+        maxIntermissionTime = 15 * tickRate # maximum time for intermissions
+        maxGameTime = 90 * tickRate # maximum game time
         self.serverData["inGame"] = False
         self.serverData["intermissionTime"] = maxIntermissionTime
 
@@ -334,7 +331,7 @@ class Game:
                     if time.time() - timeAborted > 1: self.server.distributeData("a" + json.dumps({"text": "Waiting for players...", "size": "big", "colour": (0,0,0)}), [])
                 elif not self.serverData["inGame"] and len(self.playerData) > 1:
                     # In intermission
-                    self.serverData["intermissionTime"] -= 1 / TICKRATE
+                    self.serverData["intermissionTime"] -= 1
 
                     # Countdown to start game
                     if 3 < self.serverData["intermissionTime"] < 3.1:
@@ -505,25 +502,25 @@ class Game:
                 # Only apply if game is running.
                 if self.serverData["inGame"]:
                     # Generate a speedUp collectible
-                    if random.randint(0, TICKRATE * 10) == 0: 
+                    if random.randint(0, tickRate * 10) == 0: 
                         self.serverData["features"].append({"name": "speedUp",
                                         "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
                                          "size": [40, 40],
                                          "collides": False,
                                          "type": "collectible",
-                                         "time": TICKRATE * 3,
+                                         "time": tickRate * 3,
                                          "tagger": True,
                                          "runner": True,
                                          "multiplier": random.randint(11, 14) / 10})
 
                     # Generate a larger shot collectible
-                    if random.randint(0, TICKRATE * 12) == 0: 
+                    if random.randint(0, tickRate * 12) == 0: 
                         self.serverData["features"].append({"name": "largerShot",
                                         "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
                                          "size": [40, 40],
                                          "collides": False,
                                          "type": "collectible",
-                                         "time": TICKRATE * 4,
+                                         "time": tickRate * 4,
                                          "tagger": True,
                                          "runner": False,
                                          "multiplier": random.randint(11, 14) / 10})
@@ -541,7 +538,7 @@ class Game:
                 self.server.distributeData("p" + json.dumps(self.playerData), [])
                 self.server.distributeData("s" + json.dumps(self.serverData), [])
 
-                self.serverData["gameTime"] -= 1 / TICKRATE
+                self.serverData["gameTime"] -= 1
             else:
                 self.serverData["intermissionTime"] = maxIntermissionTime
                 self.serverData["inGame"] = False

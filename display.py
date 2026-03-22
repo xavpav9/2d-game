@@ -434,6 +434,7 @@ class Renderer:
 
             else:
                 # -- Display Current Game -- #
+                tickRate = self.serverData["tickRate"]
 
                 for otherPlayer in self.playerData:
                     if otherPlayer["username"] == self.client.username:
@@ -506,7 +507,7 @@ class Renderer:
                 if player["tagger"]:
                     cooldown = player["cooldown"]
                     if cooldown <= 0: cooldownText = self.mediumFont.render("READY", True, GREEN)
-                    else: cooldownText = self.mediumFont.render(str(round(cooldown / self.serverData["tickRate"], 1)), True, RED)
+                    else: cooldownText = self.mediumFont.render(str(round(cooldown / tickRate, 1)), True, RED)
 
                     self.screen.blit(cooldownText, (self.uiPadding[0], self.screenSize[1] - self.uiPadding[1] - cooldownText.get_size()[1]))
 
@@ -531,7 +532,7 @@ class Renderer:
 
                     for collectible in player["collectibles"]:
                         self.screen.blit(pygame.transform.scale(self.featureIcons[collectible["name"]], (collectibleWidth - fontHeight, collectibleHeight - fontHeight)), (self.uiPadding[0] + leftPadding + fontHeight/2, topPadding))
-                        text = self.font.render(f"{collectible['time'] / self.serverData['tickRate']:.2f}", True, BLACK)
+                        text = self.font.render(f"{collectible['time'] / tickRate:.2f}", True, BLACK)
                         self.screen.blit(text, (self.uiPadding[0] + leftPadding + collectibleWidth/2 - text.get_size()[0]/2, topPadding + collectibleHeight - fontHeight))
 
                         topPadding += collectibleHeight + collectiblePadding
@@ -541,10 +542,10 @@ class Renderer:
 
                 # Display Game/Intermission Time left
                 if self.serverData["inGame"]:
-                    timeLeft = self.serverData["gameTime"]
+                    timeLeft = self.serverData["gameTime"] / tickRate
                     timeLeftText = self.font.render(f"Time Left: {timeLeft:.1f}", True, BLACK)
                 else:
-                    timeLeft = self.serverData["intermissionTime"]
+                    timeLeft = self.serverData["intermissionTime"] / tickRate
                     timeLeftText = self.font.render(f"Intermission Time Left: {timeLeft:.1f}", True, BLACK)
 
                 timeLeftX, timeLeftY = (self.screenSize[0]/2 - timeLeftText.get_size()[0]/2, self.uiPadding[1])
