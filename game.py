@@ -212,8 +212,6 @@ class Game:
                 features = []
                 mapSize = [random.randint(10, 15) * 100, random.randint(10, 15) * 100]
                 maxFeatureHeight = 200
-                speedUpWidth = 40
-                speedUpHeight = 40
                 for i in range(2, (mapSize[1] - maxFeatureHeight) // 100 + 1):
                     rockWidth = random.randint(20, 40)
                     rockHeight = rockWidth + random.randint(-2, 2)
@@ -231,17 +229,6 @@ class Game:
                                      "size": [bushWidth, bushHeight],
                                      "collides": False,
                                      "type": "object"})
-
-                    if random.randint(1, 5) == 1:
-                        features.append({"name": "speedUp",
-                                         "position": [random.randint(0, mapSize[0] - speedUpWidth), i * 100 + random.randint(-80, 80)],
-                                         "size": [speedUpWidth, speedUpHeight],
-                                         "collides": False,
-                                         "type": "collectible",
-                                         "time": tickRate * 3,
-                                         "tagger": True,
-                                         "runner": True,
-                                         "multiplier": 1.5})
 
                 self.serverData["map"] = {"size": mapSize, "innerColour": (200,255,200), "outerColour": (80,80,255), "name": self.mapTypes[currentMap]}
                 self.serverData["features"] = features
@@ -523,6 +510,18 @@ class Game:
                                          "time": tickRate * 4,
                                          "tagger": True,
                                          "runner": False,
+                                         "multiplier": 1.4})
+
+                    # Generate a visibility collectible
+                    if random.randint(0, tickRate * 15) == 0: 
+                        self.serverData["features"].append({"name": "makeVisible",
+                                        "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
+                                         "size": [40, 40],
+                                         "collides": False,
+                                         "type": "collectible",
+                                         "time": tickRate * 3,
+                                         "tagger": True,
+                                         "runner": True,
                                          "multiplier": random.randint(11, 14) / 10})
 
                 # Reduce existence time for shot

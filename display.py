@@ -25,7 +25,8 @@ class Renderer:
                              "rock": pygame.image.load("res/features/rock.png"),
                              "bush": pygame.image.load("res/features/bush.png"),
                              "speedUp": pygame.image.load("res/features/speedUp.png"),
-                             "largerShot": pygame.image.load("res/features/largerShot.png")}
+                             "largerShot": pygame.image.load("res/features/largerShot.png"),
+                             "makeVisible": pygame.image.load("res/features/makeVisible.png"), }
 
 
         self.characterIcons = [{"icon": "", "name": "Random Colour"},
@@ -477,22 +478,39 @@ class Renderer:
                         i += 1
 
 
+                makeVisible = False
+                for collectible in player["collectibles"]:
+                    if collectible["name"] == "makeVisible":
+                        makeVisible = True
+                        break
+
                 # Draw Players and Features and Shots
-                playerIncrementer = 0
-                featuresIncrementer = 0
-                for i in range(len(playerPositions) + len(featurePositions)):
-                    if featuresIncrementer == len(featurePositions):
-                        self.displayPlayer(playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
-                        playerIncrementer += 1
-                    elif playerIncrementer == len(playerPositions):
-                        self.displayFeature(featurePositions[featuresIncrementer], offset)
-                        featuresIncrementer += 1
-                    elif featurePositions[featuresIncrementer][1] + featurePositions[featuresIncrementer][2][1] > playerPositions[playerIncrementer][1] + playerPositions[playerIncrementer][3][1]: # if the y + height is higher, then display it later.
-                        self.displayPlayer(playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
-                        playerIncrementer += 1
-                    else:
-                        self.displayFeature(featurePositions[featuresIncrementer], offset)
-                        featuresIncrementer += 1
+                if makeVisible:
+                    # Draw players on top
+                    for i in range(len(featurePositions)):
+                        self.displayFeature(featurePositions[i], offset)
+
+                    for i in range(len(playerPositions)):
+                        playerPositions[i][4] = False # Make username visible (this is the hiddenUsername location)
+                        self.displayPlayer(playerPositions[i], usernamePositions[i], offset)
+
+                else:
+                    # Draw in normal order
+                    playerIncrementer = 0
+                    featuresIncrementer = 0
+                    for i in range(len(playerPositions) + len(featurePositions)):
+                        if featuresIncrementer == len(featurePositions):
+                            self.displayPlayer(playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
+                            playerIncrementer += 1
+                        elif playerIncrementer == len(playerPositions):
+                            self.displayFeature(featurePositions[featuresIncrementer], offset)
+                            featuresIncrementer += 1
+                        elif featurePositions[featuresIncrementer][1] + featurePositions[featuresIncrementer][2][1] > playerPositions[playerIncrementer][1] + playerPositions[playerIncrementer][3][1]: # if the y + height is higher, then display it later.
+                            self.displayPlayer(playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
+                            playerIncrementer += 1
+                        else:
+                            self.displayFeature(featurePositions[featuresIncrementer], offset)
+                            featuresIncrementer += 1
 
 
                 # Display Player Coordinates
@@ -531,7 +549,10 @@ class Renderer:
                     fontHeight = self.font.render("A", True, BLACK).get_size()[1]
 
                     for collectible in player["collectibles"]:
-                        self.screen.blit(pygame.transform.scale(self.featureIcons[collectible["name"]], (collectibleWidth - fontHeight, collectibleHeight - fontHeight)), (self.uiPadding[0] + leftPadding + fontHeight/2, topPadding))
+                        icon = self.featureIcons["noTexture"]
+                        if collectible["name"] in self.featureIcons.keys(): icon = self.featureIcons[collectible["name"]]
+
+                        self.screen.blit(pygame.transform.scale(icon, (collectibleWidth - fontHeight, collectibleHeight - fontHeight)), (self.uiPadding[0] + leftPadding + fontHeight/2, topPadding))
                         text = self.font.render(f"{collectible['time'] / tickRate:.2f}", True, BLACK)
                         self.screen.blit(text, (self.uiPadding[0] + leftPadding + collectibleWidth/2 - text.get_size()[0]/2, topPadding + collectibleHeight - fontHeight))
 
