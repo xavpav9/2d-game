@@ -28,10 +28,14 @@ class Server:
             d = disconnect
             a = alert
         """
-        encodedData = data.encode(encoding="utf-8")
-        dataLength = len(encodedData)
-        formattedData = f"{dataLength:<{self.headersize}}".encode(encoding="utf-8") + encodedData
-        conn.send(formattedData)
+        try:
+            encodedData = data.encode(encoding="utf-8")
+            dataLength = len(encodedData)
+            formattedData = f"{dataLength:<{self.headersize}}".encode(encoding="utf-8") + encodedData
+            conn.send(formattedData)
+        except Exception as e:
+            print(e)
+            print(f"Invalid message from: {conn}")
 
     def recvData(self, conn):
         try: dataLength = int(conn.recv(self.headersize).decode(encoding="utf-8"))

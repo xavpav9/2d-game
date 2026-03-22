@@ -6,8 +6,6 @@ TODO
 n. = priority
 1.
     - I think that I will make this a tag sort of game. Shoot out tag blasts using the mouse, or in the direction of travel using the space bar/RB on controller. Might have to preconfigure controller.
-    - Add controller support.
-    - New abilities - See through bushes for all;
 2.
     - Add sound effects.
     - Add more assets.
@@ -489,7 +487,7 @@ class Game:
                 # Only apply if game is running.
                 if self.serverData["inGame"]:
                     # Generate a speedUp collectible
-                    if random.randint(0, tickRate * 10) == 0: 
+                    if random.randint(0, tickRate * 14) == 0: 
                         self.serverData["features"].append({"name": "speedUp",
                                         "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
                                          "size": [40, 40],
@@ -501,7 +499,7 @@ class Game:
                                          "multiplier": random.randint(11, 14) / 10})
 
                     # Generate a larger shot collectible
-                    if random.randint(0, tickRate * 12) == 0: 
+                    if random.randint(0, tickRate * 17) == 0: 
                         self.serverData["features"].append({"name": "largerShot",
                                         "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
                                          "size": [40, 40],
@@ -513,7 +511,7 @@ class Game:
                                          "multiplier": 1.4})
 
                     # Generate a visibility collectible
-                    if random.randint(0, tickRate * 15) == 0: 
+                    if random.randint(0, tickRate * 20) == 0: 
                         self.serverData["features"].append({"name": "makeVisible",
                                         "position": [random.randint(0, mapSize[0] - 40), random.randint(50, mapSize[1] - 50)],
                                          "size": [40, 40],

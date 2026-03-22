@@ -2,7 +2,7 @@ import pygame, json, math
 from time import sleep
 
 W, H = 800, 600
-WHITE, BLACK, RED, GREEN, BLUE = (255,255,255), (0,0,0), (255,0,0), (0,255,0), (0,0,255)
+WHITE, BLACK, RED, GREEN, BLUE, TRANSPARENT = (255,255,255), (0,0,0), (255,0,0), (0,255,0), (0,0,255), (0,0,0,0)
 FPS = 30
 
 class Renderer:
@@ -213,6 +213,12 @@ class Renderer:
                 "leaveBtn": {"position": leaveBtnXY, "size": leaveBtnSize},
                 }
 
+    def sendShotData(self, x, y):
+
+        angle = self.calculateAngle(x, y)
+
+        self.client.sendData("s" + json.dumps([angle]))
+
 
     def render(self):
 
@@ -228,6 +234,7 @@ class Renderer:
         self.mediumFont = pygame.font.SysFont(typeface, 30, True, True)
         self.font = pygame.font.SysFont(typeface, 20, True, True)
         self.screen = pygame.display.set_mode((W, H))
+        self.transparentSurface = pygame.Surface((W, H), pygame.SRCALPHA)
         pygame.display.set_caption("Game")
 
         self.title = self.bigFont.render("Tag", True, BLACK)
@@ -235,6 +242,7 @@ class Renderer:
         self.alertText = self.bigFont.render("", True, RED)
         self.playBtn = self.font.render("Play", True, BLACK)
         self.quitBtn = self.font.render("Quit", True, RED)
+        self.joysticks = [] # SNES controllers
 
         self.characterWidth, self.characterHeight = [30, 30]
         leftArrow = pygame.image.load("res/buttons/leftArrow.png")
@@ -250,6 +258,10 @@ class Renderer:
             for evt in pygame.event.get():
                 if evt.type == pygame.QUIT:
                     self.clientData["running"] = False
+                elif evt.type == pygame.JOYDEVICEADDED:
+                    joystick = pygame.joystick.Joystick(evt.device_index)
+                    self.joysticks.append(joystick)
+                    print("joystick added")
                 elif evt.type == pygame.KEYDOWN:
                     if evt.key == pygame.K_LCTRL:
                         self.ctrl = True
@@ -274,7 +286,7 @@ class Renderer:
                         elif evt.key == pygame.K_ESCAPE: # Quit game when Esc is pressed in menu
                             self.clientData["running"] = False
 
-                    elif self.menuWait[0] == -1:
+                    elif self.menuWait[0] == -1: # Not in menu, and not waiting to leave menu
                         newData = False
                         if evt.key == pygame.K_a or evt.key == pygame.K_LEFT:
                             newData = True
@@ -296,13 +308,62 @@ class Renderer:
                         elif evt.key == pygame.K_SPACE:
                             x = self.velocity[0]
                             y = -self.velocity[1]
-
-                            angle = self.calculateAngle(x, y)
-
-                            self.client.sendData("s" + json.dumps([angle]))
+                            self.sendShotData(x, y)
 
                         if newData:
                             self.client.sendData("v" + json.dumps(self.velocity))
+
+                elif evt.type == pygame.JOYBUTTONDOWN:
+                    if self.clientData["inMenu"]:
+                        if evt.button == 9: # Connect to game when Start is pressed
+                            if len(self.client.username) >= 2:
+                                self.clientData["inMenu"] = False
+                                self.bottomText = self.font.render("Connecting to server...", True, GREEN)
+                                self.menuWait = [FPS/4, True]
+                            else:
+                                self.bottomText = self.font.render("Username too short", True, RED)
+                                self.menuWait = [0, False]
+                        elif evt.button == 4: # Left button
+                            self.clientData["iconNumber"] = (self.clientData["iconNumber"] - 1) % len(self.characterIcons)
+                        elif evt.button == 5: # Right button
+                            self.clientData["iconNumber"] = (self.clientData["iconNumber"] + 1) % len(self.characterIcons)
+                        elif evt.button == 8: # Quit game when Select is pressed in menu
+                            self.clientData["running"] = False
+
+                    elif self.menuWait[0] == -1:
+                        if evt.button == 1:
+                            x = self.velocity[0]
+                            y = -self.velocity[1]
+                            self.sendShotData(x, y)
+
+                        elif evt.button == 8: # Return to menu when Select is pressed in game
+                            self.client.close()
+                            self.clientData["inMenu"] = True
+                            self.bottomText = self.font.render("Disconnected from server.", True, RED)
+                            self.menuWait = [0, False]
+
+                elif evt.type == pygame.JOYAXISMOTION:
+                    print(evt)
+                    if not self.clientData["inMenu"] and self.menuWait[0] == -1:
+                        newData = False
+                        if evt.axis == 0:
+                            if round(evt.value) == 0:
+                                x = 0
+                            else:
+                                x = round(evt.value) / abs(round(evt.value))
+
+                            self.velocity[0] = x
+
+                        elif evt.axis == 1:
+                            if round(evt.value) == 0:
+                                y = 0
+                            else:
+                                y = round(evt.value) / abs(round(evt.value))
+                                self.velocity[1] = -1
+
+                            self.velocity[1] = y
+
+                        self.client.sendData("v" + json.dumps(self.velocity))
 
                 elif evt.type == pygame.KEYUP:
                     if evt.key == pygame.K_LCTRL:
@@ -419,7 +480,6 @@ class Renderer:
                     pygame.draw.rect(self.screen, RED, (characterImageX, characterImageY, self.characterWidth, self.characterHeight))
 
 
-
                 if self.menuWait[0] != -1:
                     self.screen.blit(self.bottomText, (width/2-self.bottomText.get_size()[0]/2, 4*height/5))
                 if self.menuWait[0] >= FPS:
@@ -490,15 +550,15 @@ class Renderer:
                     for i in range(len(featurePositions)):
                         self.displayFeature(self.screen, featurePositions[i], offset)
 
-                    transparentSurface = pygame.Surface((W, H), pygame.SRCALPHA)
-                    transparentSurface.set_alpha(150)
+                    self.transparentSurface.fill(TRANSPARENT)
+                    self.transparentSurface.set_alpha(150)
                     for i in range(len(playerPositions)):
                         if playerPositions[i][4] == True: # If not visible
                             playerPositions[i][4] = False # Make username visible (this is the hiddenUsername location)
-                            self.displayPlayer(transparentSurface, playerPositions[i], usernamePositions[i], offset)
+                            self.displayPlayer(self.transparentSurface, playerPositions[i], usernamePositions[i], offset)
                         else:
                             self.displayPlayer(self.screen, playerPositions[i], usernamePositions[i], offset)
-                    self.screen.blit(transparentSurface, (0, 0))
+                    self.screen.blit(self.transparentSurface, (0, 0))
 
                 else:
                     # Draw in normal order
@@ -597,7 +657,7 @@ class Renderer:
 
             pygame.display.flip()
             clock.tick(FPS)
-            if self.menuWait[0] != -1: self.menuWait[0] += 1
+            if self.menuWait[0] != -1: self.menuWait[0] += 1 # counts from 0 upwards
             if self.alertWait[0] != -1: self.alertWait[0] += 1
 
         pygame.quit()
