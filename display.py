@@ -84,11 +84,11 @@ class Renderer:
         return sorted(featurePositions, key=lambda data: data[1] + data[2][1])
 
 
-    def displayPlayer(self, playerInfo, usernameInfo, offset):
+    def displayPlayer(self, surface, playerInfo, usernameInfo, offset):
         # playerInfo = [x, y, colour, size, hiddenUsername, shots, iconNumber, tagger] size=width,height, shots={angle, size}
         playerWidth, playerHeight = playerInfo[3]
-        playerX = playerInfo[0] - offset[0] + self.screen.get_size()[0] / 2
-        playerY = playerInfo[1] - offset[1] + self.screen.get_size()[1] / 2
+        playerX = playerInfo[0] - offset[0] + surface.get_size()[0] / 2
+        playerY = playerInfo[1] - offset[1] + surface.get_size()[1] / 2
         
         # Draw shots
         for shot in playerInfo[5]:
@@ -115,44 +115,44 @@ class Renderer:
                     position[0] -= shot["size"][0]
                     position[1] -= shot["size"][1]
 
-            pygame.draw.rect(self.screen, (255, 0, 0), (position[0], position[1], shot["size"][0], shot["size"][1]))
+            pygame.draw.rect(surface, (255, 0, 0), (position[0], position[1], shot["size"][0], shot["size"][1]))
 
         if not playerInfo[4]:
-            usernameX = usernameInfo[0] - offset[0] + self.screen.get_size()[0] / 2
-            usernameY = usernameInfo[1] - offset[1] + self.screen.get_size()[1] / 2
-            self.screen.blit(usernameInfo[2], (usernameX, usernameY))
+            usernameX = usernameInfo[0] - offset[0] + surface.get_size()[0] / 2
+            usernameY = usernameInfo[1] - offset[1] + surface.get_size()[1] / 2
+            surface.blit(usernameInfo[2], (usernameX, usernameY))
 
         if 1 <= playerInfo[6] < len(self.characterIcons):
             icon = pygame.transform.scale(self.characterIcons[playerInfo[6]]["icon"], (playerWidth, playerHeight))
-            self.screen.blit(icon, (playerX, playerY))
+            surface.blit(icon, (playerX, playerY))
         else:
-            pygame.draw.rect(self.screen, playerInfo[2], (playerX, playerY, playerWidth, playerHeight))
+            pygame.draw.rect(surface, playerInfo[2], (playerX, playerY, playerWidth, playerHeight))
 
         if not self.serverData["inGame"]: # blue/red/black outlines
-            pygame.draw.rect(self.screen, BLACK, (playerX, playerY, playerWidth, playerHeight), 1)
+            pygame.draw.rect(surface, BLACK, (playerX, playerY, playerWidth, playerHeight), 1)
         elif playerInfo[7]:
-            pygame.draw.rect(self.screen, RED, (playerX, playerY, playerWidth, playerHeight), 1)
+            pygame.draw.rect(surface, RED, (playerX, playerY, playerWidth, playerHeight), 1)
         else:
-            pygame.draw.rect(self.screen, BLUE, (playerX, playerY, playerWidth, playerHeight), 1)
+            pygame.draw.rect(surface, BLUE, (playerX, playerY, playerWidth, playerHeight), 1)
 
-    def displayFeature(self, featureInfo, offset):
+    def displayFeature(self, surface, featureInfo, offset):
         # featureInfo = [x, y, size, name, colour] size=width,height
         width, height = featureInfo[2]
-        featureX = featureInfo[0] - offset[0] + self.screen.get_size()[0] / 2
-        featureY = featureInfo[1] - offset[1] + self.screen.get_size()[1] / 2
+        featureX = featureInfo[0] - offset[0] + surface.get_size()[0] / 2
+        featureY = featureInfo[1] - offset[1] + surface.get_size()[1] / 2
 
         if featureInfo[4] == False:
             icon = self.featureIcons["noTexture"]
             if featureInfo[3] in self.featureIcons.keys(): icon = self.featureIcons[featureInfo[3]]
             scaledIcon = pygame.transform.scale(icon, (width, height))
-            self.screen.blit(scaledIcon, (featureX, featureY))
+            surface.blit(scaledIcon, (featureX, featureY))
         else:
             text = self.font.render(featureInfo[3], True, [255-col for col in featureInfo[4]])
             textX = featureX + featureInfo[2][0]/2 - text.get_size()[0]/2
             textY = featureY + featureInfo[2][1]/2 - text.get_size()[1]/2
 
-            pygame.draw.rect(self.screen, featureInfo[4], (featureX, featureY, featureInfo[2][0], featureInfo[2][1]))
-            self.screen.blit(text, (textX, textY))
+            pygame.draw.rect(surface, featureInfo[4], (featureX, featureY, featureInfo[2][0], featureInfo[2][1]))
+            surface.blit(text, (textX, textY))
 
     def calculateAngle(self, x, y):
         if x == 0:
@@ -472,7 +472,7 @@ class Renderer:
                 i = 0
                 while i < len(featurePositions):
                     if featurePositions[i][4] != False:
-                        self.displayFeature(featurePositions[i], offset)
+                        self.displayFeature(self.screen, featurePositions[i], offset)
                         featurePositions.pop(i)
                     else:
                         i += 1
@@ -488,11 +488,17 @@ class Renderer:
                 if makeVisible:
                     # Draw players on top
                     for i in range(len(featurePositions)):
-                        self.displayFeature(featurePositions[i], offset)
+                        self.displayFeature(self.screen, featurePositions[i], offset)
 
+                    transparentSurface = pygame.Surface((W, H), pygame.SRCALPHA)
+                    transparentSurface.set_alpha(150)
                     for i in range(len(playerPositions)):
-                        playerPositions[i][4] = False # Make username visible (this is the hiddenUsername location)
-                        self.displayPlayer(playerPositions[i], usernamePositions[i], offset)
+                        if playerPositions[i][4] == True: # If not visible
+                            playerPositions[i][4] = False # Make username visible (this is the hiddenUsername location)
+                            self.displayPlayer(transparentSurface, playerPositions[i], usernamePositions[i], offset)
+                        else:
+                            self.displayPlayer(self.screen, playerPositions[i], usernamePositions[i], offset)
+                    self.screen.blit(transparentSurface, (0, 0))
 
                 else:
                     # Draw in normal order
@@ -500,16 +506,16 @@ class Renderer:
                     featuresIncrementer = 0
                     for i in range(len(playerPositions) + len(featurePositions)):
                         if featuresIncrementer == len(featurePositions):
-                            self.displayPlayer(playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
+                            self.displayPlayer(self.screen, playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
                             playerIncrementer += 1
                         elif playerIncrementer == len(playerPositions):
-                            self.displayFeature(featurePositions[featuresIncrementer], offset)
+                            self.displayFeature(self.screen, featurePositions[featuresIncrementer], offset)
                             featuresIncrementer += 1
                         elif featurePositions[featuresIncrementer][1] + featurePositions[featuresIncrementer][2][1] > playerPositions[playerIncrementer][1] + playerPositions[playerIncrementer][3][1]: # if the y + height is higher, then display it later.
-                            self.displayPlayer(playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
+                            self.displayPlayer(self.screen, playerPositions[playerIncrementer], usernamePositions[playerIncrementer], offset)
                             playerIncrementer += 1
                         else:
-                            self.displayFeature(featurePositions[featuresIncrementer], offset)
+                            self.displayFeature(self.screen, featurePositions[featuresIncrementer], offset)
                             featuresIncrementer += 1
 
 
